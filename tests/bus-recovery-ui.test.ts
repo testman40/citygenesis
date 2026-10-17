@@ -172,3 +172,25 @@ test('road edits then state change then city switch invalidate a queued command 
   assert.ok(error);assert.equal(model.status,'idle');assert.equal(model.selectedId,undefined);
   assert.deepEqual(f.city.snapshot(),beforeOld);assert.deepEqual(other.city.snapshot(),beforeNew);
 });
+
+test('diagnosed road can be located without mutating city and disappears after repair',()=>{
+  const f=fixture(),bus=f.buses[0],depot=f.ops.depots.get(bus.depot)!,road=depot.road;
+  const cell={x:road%f.city.size,z:Math.floor(road/f.city.size)};
+  f.city.apply(cell,cell,'erase');f.model.select(bus.id);
+  const before=f.city.snapshot();
+  assert.deepEqual(f.model.location(0),{kind:'road',label:'車庫の接続道路',...cell});
+  assert.deepEqual(f.city.snapshot(),before);
+  for(const index of [-1,0.5,999,NaN])assert.equal(f.model.location(index),undefined);
+  f.city.apply(cell,cell,'road');
+  assert.equal(f.model.location(0),undefined);
+});
+
+test('location controls cannot follow an old target after a city switch or during recovery',()=>{
+  const f=fixture(),g=fixture();let current=f.ops;
+  const model=new BusRecoveryUI(()=>current,()=>{},()=>current);
+  const road=f.ops.depots.get(f.buses[0].depot)!.road,cell={x:road%f.city.size,z:Math.floor(road/f.city.size)};
+  f.city.apply(cell,cell,'erase');model.select(f.buses[0].id);assert.ok(model.location(0));
+  current=g.ops;assert.equal(model.location(0),undefined);assert.equal(model.selectedId,undefined);
+  current=f.ops;f.city.apply(cell,cell,'road');model.select(f.buses[0].id);model.recoverAndResume();
+  assert.equal(model.status,'pending');f.city.apply(cell,cell,'erase');assert.equal(model.location(0),undefined);
+});

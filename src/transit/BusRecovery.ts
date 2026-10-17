@@ -25,6 +25,10 @@ export function prepareBusRecovery(bus:BusRun, plan:RoutePlan, size:number, minu
     if(Math.hypot(location.x-pose.x,location.z-pose.z)>1e-8||Math.abs(Math.atan2(Math.sin(location.angle-pose.angle),Math.cos(location.angle-pose.angle)))>1e-8)continue;
     phase=time;break;
   }
-  if(phase===undefined)throw recoveryError('position','現在位置と向きを保つ復旧経路がありません。道路を復旧してから再度判断してください');
+  if(phase===undefined){
+    const road=piece.curve.road;
+    const locations=Number.isInteger(road)&&road>=0&&road<size*size?[{kind:'road' as const,label:'便の現在位置の道路',x:road%size,z:Math.floor(road/size)}]:[];
+    throw recoveryError('position','現在位置と向きを保つ復旧経路がありません。道路を復旧してから再度判断してください',locations);
+  }
   return {...structuredClone(bus),path:[...plan.path],stops:structuredClone(plan.stops),returnIndex:plan.returnIndex,phase,state:'paused',error:''};
 }

@@ -133,3 +133,34 @@ for(const size of [64,128,256])test(`resumed service ${size}: independent progre
   }
   assert.equal(f.ops.routes.get(f.route.id)!.enabled,false);assert.equal(f.city.funds,funds);
 });
+
+test('diagnostics distinguish depot, stop and unknown route gaps without guessing repair cells',()=>{
+  for(const issue of ['depot','stop','gap'] as const){
+    const f=fixture(),road=issue==='depot'?f.ops.depots.get(f.bus.depot)!.road:issue==='stop'?f.city.transit.stops.get(f.route.stops[0])!.road:(f.m-4)*f.city.size+f.m;
+    const cell={x:road%f.city.size,z:Math.floor(road/f.city.size)};
+    f.city.apply(cell,cell,'erase');
+    if(issue==='gap')f.city.apply({x:f.m,z:f.m+3},{x:f.m,z:f.m+3},'erase');
+    const before=f.city.snapshot(),result=f.ops.previewBusRecovery(f.bus.id);
+    assert.equal(result.possible,false);
+    assert.equal(result.diagnostic.code,issue==='depot'?'depot-road':issue==='stop'?'stop-road':'route-path');
+    if(issue==='gap')assert.deepEqual(result.diagnostic.locations,[]);
+    else assert.deepEqual(result.diagnostic.locations,[{kind:'road',label:issue==='depot'?'車庫の接続道路':'停留所の道路',...cell}]);
+    assert.deepEqual(f.city.snapshot(),before);
+  }
+});
+
+test('an unmappable bus position identifies its original road and preserves the saved run',()=>{
+  const f=fixture(),{m,cell}=f,road=(m-4)*f.city.size+m;
+  const journey=buildLaneJourney(f.bus.path,f.city.size,f.ops.roadMinutes,new Map(f.bus.stops.map(s=>[s.index,f.city.transit.config.dwellMinutes])),id=>f.city.network.adjacent(id).length>=3);
+  const piece=journey.loop.pieces.find(p=>p.curve.road===road)!;assert.ok(piece);
+  f.bus.phase=(piece.start+piece.end)/2;
+  f.bus.nextEvent=f.bus.stops.filter(s=>journey.arrivals.get(s.index)!<=f.bus.phase).length;
+  f.bus.lap=f.bus.nextEvent?f.bus.stops[f.bus.nextEvent-1].lap:0;
+  f.city.apply(cell(m-1,m-5),cell(m+1,m-5),'road');
+  f.city.apply(cell(m-1,m-5),cell(m-1,m-4),'road');f.city.apply(cell(m+1,m-5),cell(m+1,m-4),'road');
+  f.city.apply(cell(m,m-4),cell(m,m-4),'erase');
+  const before=f.city.snapshot(),result=f.ops.previewBusRecovery(f.bus.id);
+  assert.equal(result.possible,false);assert.equal(result.diagnostic.code,'position');
+  assert.deepEqual(result.diagnostic.locations,[{kind:'road',label:'便の現在位置の道路',x:m,z:m-4}]);
+  assert.deepEqual(f.city.snapshot(),before);
+});

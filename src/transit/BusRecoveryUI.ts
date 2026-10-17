@@ -47,6 +47,13 @@ export class BusRecoveryUI {
     if(!row){this.selectedId=undefined;this.status='error';this.message='選択した便は運休・異常停止中ではありません。';return;}
     this.status=row.possible?'idle':'error';this.message=row.reason;
   }
+  /** Revalidate on activation: a road edit or city switch may invalidate an old button. */
+  location(index:number){
+    const row=this.rows().find(r=>r.id===this.selectedId);
+    if(this.status==='pending'||!Number.isInteger(index)||index<0)return;
+    const location=row?.diagnostic.locations[index],size=this.operations().transit.graph.size;
+    if(location&&Number.isInteger(location.x)&&Number.isInteger(location.z)&&location.x>=0&&location.z>=0&&location.x<size&&location.z<size)return {...location};
+  }
   recoverAndResume(){
     const owner=this.sync();if(this.status==='pending')return;
     const id=this.selectedId,generation=this.generation,scope=this.scope();

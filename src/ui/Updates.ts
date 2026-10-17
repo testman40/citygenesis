@@ -1,7 +1,19 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>街づくり操作改善版</strong></p>
+<p class="updates-current">表示中の版：<strong>街の暮らし拡張版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>街の暮らしと遊びの幅を拡張</h3>
+<ul>
+<li><strong>発展目標</strong> — 街の成長を目標と達成通知で確認できます。</li>
+<li><strong>保存都市の一覧</strong> — 都市名・景観画像・日時を確認し、直近3件のバックアップを別スロットへ復元できます。</li>
+<li><strong>川を渡る橋</strong> — 両岸を直線ドラッグして道路とバスをつなげます。</li>
+<li><strong>バスの自動運行</strong> — 全車帰庫後、設定した待ち時間で次便を出発できます。</li>
+<li><strong>都市の変化</strong> — 人口・満足度・収支の差と、変化した条件を確認できます。</li>
+<li><strong>公園と広場</strong> — 木・ベンチ・噴水で景観をつくれます。維持費がかかります。</li>
+<li><strong>BGM・効果音・街の音</strong> — 「音の設定」で有効化。近づくと車両の走行音と市民の合成したざわめきが聞こえます。手元の音声ファイルも選べます。</li>
+</ul>
+<p class="workspace-tip">従来の都市を読み込めます。橋・公園・広場を使った都市は対応する最新版で読み込んでください。都市名・画像・バックアップ・自動運行と音の設定はブラウザー内で管理します。</p>
+</article>
 <article class="update-entry"><h3>街づくりの操作と案内を改善</h3>
 <ul>
 <li><strong>メニューを整理</strong> — 建設・都市情報・公共交通・経営・保存をひとつの入口にまとめました。</li>

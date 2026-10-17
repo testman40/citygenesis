@@ -37,7 +37,7 @@ export function validateSave(input:unknown):SaveData {
   if(seen.has(id))throw new Error('セルが重複しています');seen.add(id);
   if(typeof t.road!=='boolean')throw new Error('道路データが不正です');
   const zone=number(t.zone,0,3,true),level=number(t.level,0,config.maxLevel,true),age=number(t.age,0,config.growthMonths,true);
-  const facility=number(s.version===1?0:t.facility,0,2,true),decline=number(s.version===1?0:t.decline,0,config.declineMonths,true);
+  const facility=number(s.version===1?0:t.facility,0,4,true),decline=number(s.version===1?0:t.decline,0,config.declineMonths,true);
   if(Number(t.road)+Number(zone>0)+Number(facility>0)!==1||(!zone&&(level!==0||age!==0||decline!==0)))throw new Error('セルの用途が矛盾しています');
   return {x,z,road:t.road,zone,level,age,facility,decline};
  });
@@ -62,7 +62,7 @@ export function validateSave(input:unknown):SaveData {
  const city:CityState={...(c.safety!==undefined?{safety:validateSafety(c.safety,size,cells)}:{}),...(c.transit?{transit:validateTransit(c.transit,size)}:{}),traffic,developmentOrder:[...order],taxRate:number(s.version===1?1:c.taxRate,.5,2),size,config,cells,month:number(c.month,0,1e9,true),population:number(c.population,0,size*size*config.maxLevel*config.residentsPerLevel,true),funds:number(c.funds,-1e12,1e12),tax:number(c.tax,0,1e12),maintenance:number(c.maintenance,0,1e12),balance:number(c.balance,-1e12,1e12),constructionSpending:number(c.constructionSpending,0,1e12)};
  if(c.wellness!==undefined)city.wellness=validateWellness(c.wellness,size,cells,city.safety,city.population,city.month);
  if(city.transit?.infrastructure){const occupied=new Set([...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(s=>s.id),...(city.wellness?.facilities??[]).map(f=>f.id)]),roads=new Set(cells.filter(t=>t.road).map(t=>t.z*size+t.x));for(const d of city.transit.infrastructure.depots)if(occupied.has(d.id)||Math.abs(d.id%size-d.road%size)+Math.abs(Math.floor(d.id/size)-Math.floor(d.road/size))!==1)throw Error('車庫の位置が不正です');for(const [id] of city.transit.infrastructure.directions)if(!roads.has(id))throw Error('道路規制の参照が不正です');}
- if(c.hydrology!==undefined)city.hydrology=validateHydrology(c.hydrology,size,[...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(s=>s.id),...(city.wellness?.facilities??[]).map(f=>f.id),...(city.transit?.infrastructure?.depots??[]).map(d=>d.id)]);
+ if(c.hydrology!==undefined)city.hydrology=validateHydrology(c.hydrology,size,[...cells.filter(t=>!t.road).map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(s=>s.id),...(city.wellness?.facilities??[]).map(f=>f.id),...(city.transit?.infrastructure?.depots??[]).map(d=>d.id)]);
  if(city.hydrology){const terrain=Hydrology.restore(size,city.hydrology);for(const t of cells)if(t.facility===2&&!terrain.riverside(t.z*size+t.x))throw Error('給水施設が河川に隣接していません');}
  if(c.energy!==undefined)city.energy=validateEnergy(c.energy,size,[...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(s=>s.id),...(city.wellness?.facilities??[]).map(f=>f.id),...(city.transit?.infrastructure?.depots??[]).map(d=>d.id),...(city.hydrology?.outfalls??[])],city.hydrology?.river);
  if(c.sanitation!==undefined){if(!city.hydrology&&c.waterUtility===undefined)throw Error('下水管理には河川都市データが必要です');city.sanitation=validateSanitation(c.sanitation,size,[...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(s=>s.id),...(city.wellness?.facilities??[]).map(f=>f.id),...(city.transit?.infrastructure?.depots??[]).map(d=>d.id),...(city.hydrology?.outfalls??[]),...(city.energy?.plants??[]).map(p=>p.id)],city.hydrology?.river??[]);}

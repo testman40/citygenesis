@@ -2,13 +2,14 @@ import {UPDATES_HTML} from './Updates';
 import type {City,Tool} from '../simulation/City';
 import {nextActions,tutorialSteps,type GuideAction} from './PlayGuide';
 import {toolIcon} from '../Presentation';
-type Category='build'|'info'|'transit'|'manage'|'save'|'help'|'updates';
-const titles:Record<Category,string>={build:'建設',info:'都市情報',transit:'公共交通',manage:'経営・施設',save:'保存・都市切替',help:'遊び方',updates:'アップデート履歴'};
+type Category='build'|'info'|'transit'|'manage'|'save'|'help'|'updates'|'goals'|'audio';
+const titles:Record<Category,string>={build:'建設',info:'都市情報',transit:'公共交通',manage:'経営・施設',save:'保存・都市切替',help:'遊び方',updates:'アップデート履歴',goals:'発展目標',audio:'音の設定'};
 const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id)! as T;
 const tools:Array<[string,Array<[Tool,string]>]>=[
- ['街の基本',[['road','道路'],['erase','撤去'],['residential','住宅'],['commercial','商業'],['industrial','工業']]],
+ ['街の基本',[['road','道路'],['bridge','橋'],['erase','撤去'],['residential','住宅'],['commercial','商業'],['industrial','工業']]],
  ['電力・給排水',[['power','発電所'],['wind','風力'],['solar','太陽光'],['externalWater','外部水道'],['water','給水施設'],['sewage','下水処理'],['advancedSewage','高度下水処理'],['pipe','上下水道管'],['pipe-remove','管撤去'],['outfall','排水口']]],
  ['公共サービス',[['clinic','診療所'],['hospital','病院'],['elementary','小学校'],['highSchool','高校'],['fire','消防署'],['police','警察署']]],
+ ['公園・街の景観',[['park','公園'],['plaza','広場']]],
  ['バス',[['depot','車庫'],['bus-stop','停留所'],['bus-remove','停留所撤去']]],
 ];
 /** Moves existing controls, never rebuilds them: drafts, focus and input values survive navigation. */
@@ -27,10 +28,10 @@ export class Workspace {
   private dismissed=false;
   constructor(){
     const app=element('app');
-    app.insertAdjacentHTML('beforeend',`<div id="workspace-menu" role="toolbar" aria-label="ゲームメニュー">${Object.entries(titles).filter(([id])=>id!=='updates').map(([id,title])=>`<button type="button" data-workspace="${id}" aria-controls="workspace-drawer" aria-expanded="false">${toolIcon(id==='build'?'road':id==='save'?'save':id==='help'?'help':id==='transit'?'route':'manage')}<span>${title}</span></button>`).join('')}<button id="undo-build" type="button" disabled title="Ctrl / ⌘ + Z">↶ 取り消す</button></div>
+    app.insertAdjacentHTML('beforeend',`<div id="workspace-menu" role="toolbar" aria-label="ゲームメニュー">${Object.entries(titles).filter(([id])=>id!=='updates').map(([id,title])=>`<button type="button" data-workspace="${id}" aria-controls="workspace-drawer" aria-expanded="false">${toolIcon(id==='build'?'road':id==='save'?'save':id==='help'?'help':id==='transit'?'route':id==='goals'?'goals':id==='audio'?'audio':'manage')}<span>${title}</span></button>`).join('')}<button id="undo-build" type="button" disabled title="Ctrl / ⌘ + Z">↶ 取り消す</button></div>
     <section id="workspace-drawer" aria-labelledby="workspace-title" hidden><div class="workspace-heading"><h2 id="workspace-title"></h2><button id="workspace-close" aria-label="メニューを閉じる">閉じる ×</button></div>
       <div data-workspace-page="build"><p>ツールを選んで地図を操作します。</p>${tools.map(([label,items])=>`<details ${label==='街の基本'?'open':''}><summary>${label}</summary><div class="build-palette">${items.map(([tool,label])=>`<button data-tool="${tool}">${label}</button>`).join('')}</div></details>`).join('')}<p class="workspace-tip">道路・区画は一時停止中にまとめて取り消せます。施設・管・停留所の変更は対象外です。</p></div>
-      ${['info','transit','manage','save','help','updates'].map(id=>`<div data-workspace-page="${id}" id="workspace-${id}"></div>`).join('')}
+      ${['info','transit','manage','save','help','updates','goals','audio'].map(id=>`<div data-workspace-page="${id}" id="workspace-${id}"></div>`).join('')}
     </section>
     <section id="guide-panel" aria-label="都市づくりの案内"><div class="guide-heading"><b id="guide-kind">次にすること</b><button id="guide-dismiss" type="button" aria-label="案内を小さくする">−</button></div><div id="guide-content"></div><button id="guide-expand" type="button" hidden>案内を表示</button></section>
     <p id="undo-status" role="status">道路・区画の建設と撤去を戻せます。</p>`);

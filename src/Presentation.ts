@@ -1,6 +1,7 @@
 import type {Tool} from './simulation/City';
 // UI only: never mutates the city, save data, or input handling.
 const paths:Record<string,string>={
+bridge:'M2 17h20M4 17V6m16 11V6M4 9c5 6 11 6 16 0M8 12v5m8-5v5',park:'M12 2 5 11h3l-4 5h6v6h4v-6h6l-4-5h3L12 2Z',plaza:'M3 20h18M6 17h12l-1-5H7l-1 5ZM12 12V4m-4 4c0-5 8-5 8 0',goals:'M8 3h8v7a4 4 0 0 1-8 0V3ZM8 5H3v3c0 3 3 4 5 4m8-7h5v3c0 3-3 4-5 4M12 14v6m-4 1h8',audio:'M9 18V5l11-3v14M9 8l11-3M9 18c0 4-6 4-6 1s6-4 6-1Zm11-2c0 4-6 4-6 1s6-4 6-1Z',
 select:'m5 3 14 10-7 1-3 7L5 3Z',road:'M5 2 2 22M19 2l3 20M12 3v4m0 4v3m0 4v3',erase:'M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7',
 residential:'m3 11 9-8 9 8M5 10v11h14V10M10 21v-7h4v7',commercial:'M3 9h18l-2-6H5L3 9Zm1 0v12h16V9M9 21v-7h6v7M3 9c0 4 6 4 6 0 0 4 6 4 6 0 0 4 6 4 6 0',industrial:'M3 21V10l6 4v-4l6 4V3h4l2 18H3Zm3-3h2m3 0h2m3 0h2',
 power:'m14 2-10 12h8l-2 8 10-12h-8l2-8Z',water:'M12 2C10 6 4 11 4 15a8 8 0 0 0 16 0c0-4-6-9-8-13ZM8 15c0 3 2 4 4 4',depot:'M2 21V6l10-4 10 4v15M6 21V9h12v12M8 12h8v6H8v-6Zm0 3h8m-7 3v2m6-2v2','bus-stop':'M12 12v10M7 22h10M6 2h12v10H6V2Zm3 3h6v4H9V5Z',

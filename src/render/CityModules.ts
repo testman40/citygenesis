@@ -16,10 +16,15 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
  for(let z=cz*16;z<Math.min(city.size,(cz+1)*16);z++)for(let x=cx*16;x<Math.min(city.size,(cx+1)*16);x++){
   const tileStart=parts.length;const begin=profile?performance.now():0;owner=z*city.size+x;const c={x,z},t=city.hasRoad(c)?ROAD_TILE:city.tile(c),seed=hash(x,z),px=x+.5,pz=z+.5;
   const hydro=city.hydrology;
-  if(hydro?.river.has(owner)){add('surface',px,.035,pz,1,.06,1,overlay==='sewage'&&city.sanitation&&hydro.untreated>.001?'#9aa47b':overlay==='normal'?'#4b9fb8':'#639cb0');if(quality==='high'&&seed%3===0)mark('detail',px,.07,pz,.46,.008,.035,'#9bced6');continue;}
+  if(hydro?.river.has(owner)&&!t.road){add('surface',px,.035,pz,1,.06,1,overlay==='sewage'&&city.sanitation&&hydro.untreated>.001?'#9aa47b':overlay==='normal'?'#4b9fb8':'#639cb0');if(quality==='high'&&seed%3===0)mark('detail',px,.07,pz,.46,.008,.035,'#9bced6');continue;}
   if((overlay==='water'||overlay==='sewage')&&hydro?.pipes.has(owner)){const a=hydro.neighbors(owner).filter(id=>hydro.pipes.has(id)),v=overlay==='sewage'?(city.sanitation?hydro.treatmentAt(owner).ratio:0):hydro.at(owner),col=INFO_STYLE[informationAt(city,owner,overlay).state].color;mark('surface',px,.13,pz,.18,.018,.18,col);for(const id of a){const dx=id%city.size-x,dz=Math.floor(id/city.size)-z;mark('surface',px+dx*.25,.13,pz+dz*.25,dx?.5:.09,.018,dz?.5:.09,col);}}
   const access=[city.hasRoad({x,z:z-1}),city.hasRoad({x:x+1,z}),city.hasRoad({x,z:z+1}),city.hasRoad({x:x-1,z})];
   const degree=access.filter(Boolean).length;
+  if(t.road&&hydro?.river.has(owner)){
+   add('surface',px,-.015,pz,1,.025,1,'#4b9fb8');
+   const horizontal=access[1]||access[3];
+   for(const side of [-.44,.44]){add('mass',px+(horizontal?0:side),.20,pz+(horizontal?side:0),horizontal?1:.045,.075,horizontal?.045:1,'#a7b9b8');add('detail',px+(horizontal?0:side),.10,pz+(horizontal?side:0),.04,.2,.04,'#81989a');}
+  }
   if(t.road){
    const id=z*city.size+x,load=city.traffic.congestion(id);
    const response=overlay==='fire'||overlay==='police'?city.safety.responseAt(id,overlay):null;
@@ -75,6 +80,10 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
       for(const dx of [-.22,0,.22])add('detail',px+dx,.26,pz+.36,.17,.25,.018,t.facility==='fire'?'#a69480':'#86b9c7');
       add('mass',px-.25,.95,pz-.18,.15,.65,.18,accent);
       if(quality==='high'){add('detail',px+.18,.79,pz-.15,.22,.14,.22,'#a7b2ac');add('detail',px-.25,1.3,pz-.18,.19,.07,.22,'#f0e5c8');}
+    }else if(t.facility==='park'){
+     add('surface',px,.08,pz,.96,.08,.96,'#81ae78');add('surface',px,.13,pz,.18,.025,.96,'#d8ceb0');tree(x+.20,z+.25,seed);tree(x+.80,z+.73,seed+1);add('mass',px+.21,.23,pz-.21,.30,.05,.11,'#aa8058');for(const dx of [.10,.32])add('detail',px+dx,.15,pz-.21,.035,.14,.10,'#617263');
+    }else if(t.facility==='plaza'){
+     add('surface',px,.09,pz,.95,.10,.95,'#d6c7b2');for(const dx of [-.31,0,.31])mark('detail',px+dx,.15,pz,.012,.012,.93,'#b7b6a4');add('mass',px,.20,pz,.43,.16,.43,'#bac7c5');mark('surface',px,.30,pz,.34,.025,.34,'#7eb9c8');add('mass',px,.41,pz,.075,.23,.075,'#91b4bd');tree(x+.16,z+.16,seed);
     }else if(t.facility==='power'){add('mass',px,.36,pz,.72,.55,.66,body);for(const dx of [-.18,.18]){add('mass',px+dx,.8,pz,.14,1.05,.16,'#87949b');add('detail',px+dx,1.1,pz,.15,.07,.17,'#e6b190');}add('detail',px,.12,pz+.36,.58,.09,.05,'#e6aa73');}
     else{add('mass',px,.28,pz,.72,.4,.65,'#cad9db');add('mass',px,.66,pz,.55,.37,.52,'#79b7c7');add('roof',px,.91,pz,.43,.18,.43,'#dfe9e1',Math.PI/4);add('detail',px,.48,pz+.34,.4,.08,.035,'#568d9c');}
     const front=access.findIndex(Boolean);orientFront(parts,facilityStart,px,pz,front);if(front>=0)add('surface',px+(front===1?.39:front===3?-.39:0),.09,pz+(front===0?-.39:front===2?.39:0),front%2?.18:.42,.02,front%2?.42:.18,'#d5d2bc');

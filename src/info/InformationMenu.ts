@@ -37,8 +37,8 @@ export class InformationMenu {
   const bar=document.getElementById('information-toolbar')!,panel=document.getElementById('information-panel')!;
   bar.addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-tab]');if(b)this.commit(toggleMenu(this.state,b.dataset.infoTab as InfoTab));});
   (document.getElementById('info-other') as HTMLSelectElement).onchange=e=>this.openMode((e.target as HTMLSelectElement).value as InfoMode||'normal');
-  document.getElementById('info-close')!.onclick=()=>this.close(true);
-  for(const area of [bar,panel])area.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();this.close(true);}});
+  document.getElementById('info-close')!.onclick=()=>{this.close(true);document.dispatchEvent(new Event('city-info-dismiss'));};
+  for(const area of [bar,panel])area.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();this.close(true);document.dispatchEvent(new Event('city-info-dismiss'));}});
   bar.addEventListener('keydown',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-tab]');if(!b||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const buttons=Array.from(bar.querySelectorAll<HTMLButtonElement>('[data-info-tab]')),index=buttons.indexOf(b),next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(index+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;buttons.forEach((v,i)=>v.tabIndex=i===next?0:-1);buttons[next].focus();});this.paint();
  }
  private commit(next:MenuState){this.state=next;this.paint();this.changed(next.mode);}

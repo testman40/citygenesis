@@ -124,3 +124,43 @@ body.bus-editor-open #app #transit-panel{max-height:none;overflow:visible}
 #bus-recovery-select{width:100%;min-width:0}#bus-recovery-list{max-height:150px;overflow:auto;padding-left:18px}
 #bus-recovery-result[data-state=error]{color:var(--negative,#a13631)}#bus-recovery-result[data-state=success]{color:var(--positive,#246d5c)}
 @media(max-width:700px){body.bus-editor-open #app .transit-panel{top:162px!important;width:min(260px,calc(100vw - 24px));max-height:calc(100dvh - 304px)}}
+
+/* Main workspace: one drawer, persistent city/playback HUD, map-first controls. */
+#app #workspace-menu{position:fixed;z-index:20;top:102px;left:18px;display:flex;gap:5px;max-width:calc(100vw - 295px);overflow-x:auto;padding:5px;background:var(--bg-panel,#f5faf3);border:1px solid var(--border,#c6d8ce);border-radius:12px;box-shadow:var(--panel-shadow);scrollbar-width:thin}
+#app #workspace-menu button{display:flex;align-items:center;justify-content:center;gap:5px;flex-shrink:0;min-height:40px;padding:7px 10px;font-size:13px;white-space:nowrap}
+#app #workspace-menu button .ui-icon{width:18px;height:18px}#app #workspace-menu .active{background:var(--accent,#276e5d);color:#fff}
+#app #playback{position:fixed;top:102px;right:18px;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg-panel,#f5faf3);border:1px solid var(--border,#c6d8ce);border-radius:12px;padding:8px 12px;min-height:52px;font-size:13px}
+#app #playback button{min-width:32px;min-height:32px;padding:5px}
+#app #workspace-drawer{position:fixed;z-index:18;top:166px;left:18px;width:330px;max-width:calc(100vw - 36px);max-height:calc(100dvh - 302px);overflow:auto;overscroll-behavior:contain;background:var(--bg-panel,#f5faf3);border:1px solid var(--border,#c6d8ce);border-radius:14px;box-shadow:var(--panel-shadow);padding:0 14px 14px;font-size:13px}
+#app .workspace-heading{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:3;background:var(--bg-panel,#f5faf3);padding:12px 0;gap:10px;border-bottom:1px solid var(--border,#c6d8ce)}
+#app .workspace-heading h2{font-size:17px;margin:0}#app #workspace-close{font-size:12px;min-height:32px;padding:6px 9px}
+#app #workspace-drawer :is(.simulation-panel,.transit-panel,.save-panel,.note,#information-toolbar,#information-panel,#help-panel){position:static!important;inset:auto!important;transform:none!important;width:100%!important;min-width:0;max-width:none!important;max-height:none!important;margin:10px 0;padding:0;border:0;border-radius:0;box-shadow:none;overflow:visible;background:transparent;visibility:visible!important;pointer-events:auto}
+#app #workspace-drawer #information-toolbar{display:flex;flex-wrap:wrap;gap:4px;overflow:visible}
+#app #workspace-drawer #information-toolbar button{flex:1 0 65px;min-width:0;min-height:52px;padding:6px;font-size:11px}
+#app #workspace-drawer .info-other-label{width:100%}
+#app #workspace-drawer #transit-panel{max-height:none;overflow:visible}
+#app #workspace-drawer #management-panel>summary{display:none}
+#app #workspace-drawer #help-panel{line-height:1.6}
+#app #workspace-drawer :is(input,select){max-width:100%;min-width:0}
+#app #workspace-drawer p{line-height:1.6}#app #workspace-drawer summary{padding:10px 0;cursor:pointer;font-weight:600}
+#app .build-palette{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:4px 0 10px}
+#app .build-palette button{display:flex;gap:7px;align-items:center;min-height:44px;padding:7px;font-size:13px;text-align:left}
+#app .workspace-tip{font-size:12px;color:var(--text-muted,#526b64)}
+#app #guide-panel{position:fixed;z-index:12;top:166px;left:18px;width:300px;max-width:calc(100vw - 36px);max-height:calc(100dvh - 325px);overflow:auto;padding:12px 14px;border:1px solid var(--border,#c6d8ce);border-radius:12px;background:var(--bg-panel,#f5faf3);box-shadow:var(--panel-shadow);font-size:13px;line-height:1.6}
+#app .guide-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;color:var(--accent,#276e5d)}#app .guide-heading button{padding:0 7px;min-width:30px;min-height:30px}
+#app #guide-content>strong{font-size:15px;display:block}#app #guide-content p{margin:5px 0 9px}#app #guide-content button{font-size:12px;min-height:36px;padding:6px 8px;display:inline-flex;align-items:center;gap:5px;margin:3px 4px 3px 0}
+#app #guide-content small{display:block;margin:7px 0;font-size:11px;color:var(--text-muted,#526b64)}#app #guide-content button[data-guide=skip]{background:transparent;border-color:transparent;text-decoration:underline;display:block}
+body[data-workspace]:not([data-workspace=""]) #app #guide-panel{display:none}
+#app nav[aria-label="建設ツール"]{position:fixed;z-index:16;left:18px;right:auto;bottom:42px;top:auto;transform:none;width:max-content;max-width:calc(100vw - 36px);display:flex;flex-wrap:nowrap;justify-content:flex-start;gap:3px;padding:5px;overflow-x:auto;border-radius:12px;scrollbar-width:thin}
+#app nav[aria-label="建設ツール"] button{flex:0 0 auto;min-width:56px;min-height:48px;padding:6px;font-size:12px}
+#app nav[aria-label="建設ツール"] button[data-tool]{min-width:56px;padding:6px}#app nav[aria-label="建設ツール"] kbd{display:none}
+#app #undo-status{position:fixed;z-index:10;bottom:103px;left:18px;font-size:11px;padding:3px 7px;margin:0;max-width:calc(100vw - 36px);border-radius:5px;background:var(--bg-panel,#f5faf3);pointer-events:none}
+#app #road-panel{position:fixed;left:365px;right:auto;bottom:148px;top:auto;transform:none;max-width:calc(100vw - 390px);z-index:14;padding:8px;font-size:12px}
+#app #operation-hint{top:auto;bottom:217px;left:365px;transform:none;max-width:calc(100vw - 390px)}
+#app #help-panel[hidden]{display:none!important}
+#app :is(button:focus-visible,select:focus-visible){outline:3px solid #dca845;outline-offset:2px}
+@media(max-width:1000px){#app #workspace-menu{max-width:calc(100vw - 36px);top:82px}#app #playback{top:143px;min-height:42px;padding:5px 9px}#app #workspace-drawer,#app #guide-panel{top:143px}#app #workspace-drawer{max-height:calc(100dvh - 277px)}#app #guide-panel{width:280px;max-height:calc(100dvh - 300px)}}
+@media(max-width:700px){#app header{top:8px;left:10px;right:10px}#app .stats{padding:7px!important}#app #workspace-menu{top:67px;left:10px;max-width:calc(100vw - 20px);gap:3px;padding:4px}#app #workspace-menu button{min-height:38px;padding:6px 8px;font-size:12px}#app #workspace-menu button svg{display:none}#app #playback{top:120px;left:10px;right:auto;min-height:38px;font-size:12px;padding:4px 9px}#app #workspace-drawer{top:166px;left:10px;width:310px;max-width:calc(100vw - 20px);max-height:calc(100dvh - 300px)}#app #guide-panel{top:166px;left:10px;width:260px;max-height:calc(100dvh - 310px);padding:9px 11px;font-size:12px}#app #guide-content>strong{font-size:14px}#app nav[aria-label="建設ツール"]{left:10px;bottom:35px;max-width:calc(100vw - 20px)}#app nav[aria-label="建設ツール"] button{min-width:48px;min-height:44px;font-size:11px}#app #undo-status{bottom:92px;left:10px;font-size:10px;max-width:calc(100vw - 20px)}#app #road-panel{left:auto;right:10px;bottom:130px;max-width:min(250px,calc(100vw - 20px));max-height:160px;overflow:auto}#app #operation-hint{top:auto;bottom:300px;left:10px;max-width:calc(100vw - 20px)}#app footer{font-size:10px}}
+@media(max-height:650px) and (min-width:701px){#app #workspace-menu,#app #playback{top:77px}#app #workspace-drawer,#app #guide-panel{top:139px;max-height:calc(100dvh - 270px)}}
+#app #undo-status{bottom:125px}
+@media(max-width:700px){#app #workspace-menu #undo-build{position:fixed;top:120px;right:10px;min-height:38px;width:132px;background:var(--bg-panel,#f5faf3);border:1px solid var(--border,#c6d8ce);border-radius:10px}#app #undo-status{bottom:112px}}

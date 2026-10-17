@@ -13,7 +13,7 @@ export function toolIcon(key:string):string {
 }
 export function decorateControls(root:ParentNode=document):void {
  root.querySelectorAll<HTMLButtonElement>('button').forEach(b=>{
-  b.classList.add('ui-control');if(b.querySelector('svg'))return;
+  b.classList.add('ui-control');if(b.querySelector('svg')||b.closest('#guide-panel')||b.id==='workspace-close'||b.id==='undo-build')return;
   if(b.dataset.tool){const label=(b.textContent??'').trim().replace(/^[＋+×┼↘▰⌖═▱⌂▤▥ϟ◉✚♨◆≈≋✣▦⇥]\s*/u,'');b.innerHTML=toolIcon(b.dataset.tool);const span=document.createElement('span');span.textContent=label;b.append(span);}
   else {
    const key=b.id.includes('delete')||b.id.includes('remove')?'erase':b.id.includes('save')||b.id==='export-city'?'save':b.id.includes('load')||b.id==='switch-city'?'load':b.id.includes('bus')?'route':b.id==='focus-city'||b.id==='reset'?'focus':b.id==='help'?'help':'manage';

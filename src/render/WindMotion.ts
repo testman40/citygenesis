@@ -1,0 +1,2 @@
+/** Pure presentation transform. Never advances monthly generation. Optional output avoids frame allocations. */
+export function rotorPose(p:{x:number;z:number;angle:number;rotor?:{x:number;z:number}},phase:number,out={x:0,z:0,angle:0}){if(!p.rotor){out.x=p.x;out.z=p.z;out.angle=p.angle;return out;}const dx=p.x-p.rotor.x,dz=p.z-p.rotor.z,c=Math.cos(phase),s=Math.sin(phase);out.x=p.rotor.x+dx*c+dz*s;out.z=p.rotor.z-dx*s+dz*c;out.angle=p.angle+phase;return out;}

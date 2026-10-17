@@ -1,0 +1,2 @@
+/** Yield a CPU slice to input/render tasks; timer fallback keeps older runtimes usable. */
+export function yieldInfrastructure(){const runtime=globalThis as unknown as {scheduler?:{yield?:()=>Promise<void>};setImmediate?:(callback:()=>void)=>unknown};if(runtime.scheduler?.yield)return runtime.scheduler.yield();return new Promise<void>(resolve=>{if(runtime.setImmediate)runtime.setImmediate(resolve);else setTimeout(resolve,0);});}

@@ -1,0 +1,1 @@
+export const MAP_SIZES=[64,128,256] as const;export type MapSize=typeof MAP_SIZES[number];export function playableSize(size:unknown):MapSize{if(!MAP_SIZES.includes(size as MapSize))throw new Error('都市サイズは64×64、128×128または256×256です');return size as MapSize;}

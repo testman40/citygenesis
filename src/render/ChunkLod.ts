@@ -1,0 +1,2 @@
+/** Visual-only thresholds. Legacy maps keep their exact G3 visibility rules. */
+export function chunkLod(size:number,quality:'standard'|'high',night:number,orbitDistance:number,distance:number){if(size<256)return {detail:quality==='high'||night>.5||orbitDistance<86,foliage:true,roof:true};return {detail:distance<(quality==='high'?128:80),foliage:distance<(quality==='high'?144:96),roof:distance<(quality==='high'?224:160)};}

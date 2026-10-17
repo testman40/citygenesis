@@ -1,0 +1,3 @@
+import type {VehiclePose} from '../traffic/Traffic';
+/** Interpolate along the authoritative segment, never diagonally across the inside of an L turn. */
+export function constrainVehicle(position:VehiclePose,target:VehiclePose){if(target.laneAligned){Object.assign(position,target);return;}const {roadA:a,roadB:b,mapSize:n}=target;if(a===undefined||b===undefined||n===undefined)return;position.roadA=a;position.roadB=b;position.mapSize=n;const ax=a%n,az=Math.floor(a/n),bx=b%n,bz=Math.floor(b/n);if(a===b){position.x=target.x;position.z=target.z;}else if(ax===bx){position.x=target.x;position.z=Math.max(Math.min(az,bz)+.5,Math.min(Math.max(az,bz)+.5,position.z));}else{position.z=target.z;position.x=Math.max(Math.min(ax,bx)+.5,Math.min(Math.max(ax,bx)+.5,position.x));}}

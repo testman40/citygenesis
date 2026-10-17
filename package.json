@@ -1,0 +1,35 @@
+{
+  "name": "city-foundations",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test": "tsx --test tests/*.test.ts",
+    "preview": "vite preview --host 127.0.0.1",
+    "bench:edge": "node tests/p1-capture.mjs after",
+    "bench:cpu": "tsx tests/p1-cpu.ts after",
+    "bench:stress": "tsx tests/p1-stress.ts after",
+    "bench:baseline": "node tests/p1-prepare-baseline.mjs",
+    "bench:memory": "node tests/p1-memory.mjs",
+    "bench:compatibility": "tsx tests/p1-compatibility.ts",
+    "bench:p2": "node tests/p2-capture.mjs",
+    "bench:p2:normal": "node tests/p2-normal.mjs",
+    "bench:p2:prepare": "node tests/p2-prepare-baseline.mjs",
+    "bench:p2:baseline": "node tests/p2-baseline.mjs",
+    "bench:p2:profile": "node tests/p2-profile.mjs current",
+    "test:p2:browser": "node tests/p2-browser.mjs",
+    "qa": "node qa-run.mjs"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.180.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7",
+    "tsx": "^4.20.5",
+    "@playwright/test": "^1.55.1"
+  }
+}

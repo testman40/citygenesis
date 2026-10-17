@@ -1,0 +1,20 @@
+import type {InfrastructureState,BusRun,BusState} from './BusOperations';
+/** Explicit extension version; the outer city v4 and legacy transit payload remain compatible. */
+export function validateInfrastructure(value:unknown,size:number,routeIds:Set<number>,seats=30):InfrastructureState{
+ const fail=():never=>{throw Error('バス車庫・循環運行の保存データが不正です');};
+ const object=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:fail();
+ const num=(v:unknown,min:number,max:number,int=false)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max&&(!int||Number.isInteger(v))?v:fail();
+ const integer=(v:unknown,min=0,max=size*size-1)=>num(v,min,max,true),text=(v:unknown,max=80)=>typeof v==='string'&&v.length<=max?v:fail();
+ const array=(v:unknown,max:number)=>Array.isArray(v)&&v.length<=max?v:fail();
+ const raw=object(value);if(raw.version!==1)fail();const depotIds=new Set<number>(),managedIds=new Set<number>(),busIds=new Set<string>();
+ const depots=array(raw.depots,16).map(v=>{const d=object(v),id=integer(d.id),capacity=integer(d.capacity,1,64),owned=integer(d.owned,0,capacity);if(depotIds.has(id))fail();depotIds.add(id);return {id,road:integer(d.road),capacity,owned,name:text(d.name,40)};});
+ const routes=array(raw.routes,16).map(v=>{const r=object(v),id=integer(r.id,1,1e9),depot=integer(r.depot),laps=integer(r.laps,1,20),color=text(r.color,7);if(!routeIds.has(id)||managedIds.has(id)||r.mode!=='circular'||typeof r.enabled!=='boolean'||!/^#[a-f0-9]{6}$/i.test(color)||r.enabled&&!depotIds.has(depot))fail();managedIds.add(id);return {id,depot,laps,color,mode:'circular' as const,enabled:r.enabled as boolean};});
+ let nodes=0;const buses=array(raw.buses,320).map(v=>{const b=object(v),id=text(b.id,64),route=integer(b.route,1,1e9),depot=integer(b.depot),state=text(b.state) as BusState,path=array(b.path,131072).map(n=>integer(n)),tripLaps=integer(b.tripLaps,1,20);nodes+=path.length;
+ if(!new RegExp('^managed:'+route+':(?:[0-9]|1[0-9])$').test(id)||busIds.has(id)||!managedIds.has(route)||!depotIds.has(depot)||!['garage','departing','travel','stopped','boarding','returning','paused','error'].includes(state)||path.length<4||nodes>2e6||path[0]!==depot||path.at(-1)!==depot)fail();busIds.add(id);
+ for(let i=1;i<path.length;i++)if(Math.abs(path[i]%size-path[i-1]%size)+Math.abs(Math.floor(path[i]/size)-Math.floor(path[i-1]/size))!==1)fail();
+ const stops=array(b.stops,321).map(v=>{const s=object(v);if(s.first!==undefined&&s.first!==true)fail();return {index:integer(s.index,1,path.length-2),id:integer(s.id,1,1e9),lap:integer(s.lap,0,tripLaps),...(s.first?{first:true}: {})};});
+ const cycle=(stops.length-1)/tripLaps;if(!Number.isInteger(cycle)||cycle<2||cycle>16||stops[0]?.first!==true||stops.some((s,i)=>i>0&&s.first||i>0&&s.id!==stops[1+(i-1)%cycle].id)||b.returnIndex!==stops.at(-1)?.index||(b.nextEvent===0?0:stops[Number(b.nextEvent)-1]?.lap)!==b.lap||Number(b.boarded)-Number(b.alighted)!==b.onboard)fail();if(stops.length<3||stops.some((s,i)=>i>0&&(s.index<=stops[i-1].index||s.lap<stops[i-1].lap))||stops.at(-1)?.lap!==tripLaps)fail();
+ const passengers=b.passengers===undefined?undefined:array(b.passengers,16).map(v=>{const entry=array(v,2);if(entry.length!==2)fail();return [integer(entry[0],1,1e9),integer(entry[1],1,seats)] as [number,number];});if(passengers&&passengers.reduce((n,[,count])=>n+count,0)!==b.onboard)fail();return {id,route,depot,state,path,stops,tripLaps,...(passengers?{passengers}:{}),lap:integer(b.lap,0,tripLaps),phase:num(b.phase,0,path.length*2),clock:num(b.clock,0,1e10),returnIndex:integer(b.returnIndex,1,path.length-2),nextEvent:integer(b.nextEvent,0,stops.length),onboard:integer(b.onboard,0,seats),boarded:integer(b.boarded,0,1e9),alighted:integer(b.alighted,0,1e9),error:text(b.error,200),delay:num(b.delay,0,60)} satisfies BusRun;
+ });
+ const seen=new Set<number>(),directions=array(raw.directions,size*size).map(v=>{const d=array(v,2);if(d.length!==2)fail();const id=integer(d[0]);if(seen.has(id))fail();seen.add(id);return [id,integer(d[1],0,3)] as [number,number];});return {version:1,depots,routes,buses,directions};
+}

@@ -1,8 +1,9 @@
+import {UPDATES_HTML} from './Updates';
 import type {City,Tool} from '../simulation/City';
 import {nextActions,tutorialSteps,type GuideAction} from './PlayGuide';
 import {toolIcon} from '../Presentation';
-type Category='build'|'info'|'transit'|'manage'|'save'|'help';
-const titles:Record<Category,string>={build:'建設',info:'都市情報',transit:'公共交通',manage:'経営・施設',save:'保存・都市切替',help:'遊び方'};
+type Category='build'|'info'|'transit'|'manage'|'save'|'help'|'updates';
+const titles:Record<Category,string>={build:'建設',info:'都市情報',transit:'公共交通',manage:'経営・施設',save:'保存・都市切替',help:'遊び方',updates:'アップデート履歴'};
 const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id)! as T;
 const tools:Array<[string,Array<[Tool,string]>]>=[
  ['街の基本',[['road','道路'],['erase','撤去'],['residential','住宅'],['commercial','商業'],['industrial','工業']]],
@@ -26,13 +27,16 @@ export class Workspace {
   private dismissed=false;
   constructor(){
     const app=element('app');
-    app.insertAdjacentHTML('beforeend',`<div id="workspace-menu" role="toolbar" aria-label="ゲームメニュー">${Object.entries(titles).map(([id,title])=>`<button type="button" data-workspace="${id}" aria-controls="workspace-drawer" aria-expanded="false">${toolIcon(id==='build'?'road':id==='save'?'save':id==='help'?'help':id==='transit'?'route':'manage')}<span>${title}</span></button>`).join('')}<button id="undo-build" type="button" disabled title="Ctrl / ⌘ + Z">↶ 取り消す</button></div>
+    app.insertAdjacentHTML('beforeend',`<div id="workspace-menu" role="toolbar" aria-label="ゲームメニュー">${Object.entries(titles).filter(([id])=>id!=='updates').map(([id,title])=>`<button type="button" data-workspace="${id}" aria-controls="workspace-drawer" aria-expanded="false">${toolIcon(id==='build'?'road':id==='save'?'save':id==='help'?'help':id==='transit'?'route':'manage')}<span>${title}</span></button>`).join('')}<button id="undo-build" type="button" disabled title="Ctrl / ⌘ + Z">↶ 取り消す</button></div>
     <section id="workspace-drawer" aria-labelledby="workspace-title" hidden><div class="workspace-heading"><h2 id="workspace-title"></h2><button id="workspace-close" aria-label="メニューを閉じる">閉じる ×</button></div>
       <div data-workspace-page="build"><p>ツールを選んで地図を操作します。</p>${tools.map(([label,items])=>`<details ${label==='街の基本'?'open':''}><summary>${label}</summary><div class="build-palette">${items.map(([tool,label])=>`<button data-tool="${tool}">${label}</button>`).join('')}</div></details>`).join('')}<p class="workspace-tip">道路・区画は一時停止中にまとめて取り消せます。施設・管・停留所の変更は対象外です。</p></div>
-      ${['info','transit','manage','save','help'].map(id=>`<div data-workspace-page="${id}" id="workspace-${id}"></div>`).join('')}
+      ${['info','transit','manage','save','help','updates'].map(id=>`<div data-workspace-page="${id}" id="workspace-${id}"></div>`).join('')}
     </section>
     <section id="guide-panel" aria-label="都市づくりの案内"><div class="guide-heading"><b id="guide-kind">次にすること</b><button id="guide-dismiss" type="button" aria-label="案内を小さくする">−</button></div><div id="guide-content"></div><button id="guide-expand" type="button" hidden>案内を表示</button></section>
     <p id="undo-status" role="status">道路・区画の建設と撤去を戻せます。</p>`);
+    element('workspace-updates').innerHTML=UPDATES_HTML;
+    const updates=document.createElement('button');updates.id='updates-open';updates.type='button';updates.textContent='更新履歴';updates.setAttribute('aria-label','アップデート履歴を開く');updates.setAttribute('aria-controls','workspace-drawer');updates.setAttribute('aria-expanded','false');
+    document.querySelector('header .stats')!.append(updates);updates.onclick=()=>this.open(this.category==='updates'?null:'updates');
     const move=(selector:string,target:string)=>element(target).append(document.querySelector(selector)!);
     move('#information-toolbar','workspace-info');move('#information-panel','workspace-info');move('.note','workspace-info');
     move('.transit-panel','workspace-transit');move('.simulation-panel','workspace-manage');move('.save-panel','workspace-save');move('#help-panel','workspace-help');
@@ -65,12 +69,12 @@ export class Workspace {
     document.body.dataset.workspace=category??'';
     document.querySelectorAll<HTMLElement>('[data-workspace-page]').forEach(page=>page.hidden=page.dataset.workspacePage!==category);
     document.querySelectorAll<HTMLElement>('[data-workspace]').forEach(button=>{const active=button.dataset.workspace===category;button.setAttribute('aria-expanded',String(active));button.classList.toggle('active',active);});
-    element('workspace-title').textContent=category?titles[category]:'';
+    element('workspace-title').textContent=category?titles[category]:'';element('updates-open').setAttribute('aria-expanded',String(category==='updates'));
     element<HTMLDetailsElement>('transit-panel').open=category==='transit';
     if(category==='manage'){element<HTMLDetailsElement>('management-panel').open=true;if(element<HTMLDetailsElement>('finance-panel').open){this.financeViewed=true;this.invalidate();}}
     this.onNavigate(category);
   }
-  close(focus=false){const previous=this.category;this.open(null);if(focus&&previous)document.querySelector<HTMLElement>(`[data-workspace="${previous}"]`)?.focus();}
+  close(focus=false){const previous=this.category;this.open(null);if(focus&&previous){if(previous==='updates')element('updates-open').focus();else document.querySelector<HTMLElement>(`[data-workspace="${previous}"]`)?.focus();}}
   reveal(panel:string){
     this.open(panel.startsWith('bus-')?'transit':'manage');
     const target=document.getElementById(panel);if(!target)return;

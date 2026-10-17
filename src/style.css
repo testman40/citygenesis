@@ -164,3 +164,8 @@ body[data-workspace]:not([data-workspace=""]) #app #guide-panel{display:none}
 @media(max-height:650px) and (min-width:701px){#app #workspace-menu,#app #playback{top:77px}#app #workspace-drawer,#app #guide-panel{top:139px;max-height:calc(100dvh - 270px)}}
 #app #undo-status{bottom:125px}
 @media(max-width:700px){#app #workspace-menu #undo-build{position:fixed;top:120px;right:10px;min-height:38px;width:132px;background:var(--bg-panel,#f5faf3);border:1px solid var(--border,#c6d8ce);border-radius:10px}#app #undo-status{bottom:112px}}
+/* Visible on the first screen; history uses the same dismissible drawer as other menus. */
+#app #updates-open{pointer-events:auto;min-height:32px;flex-shrink:0;font-size:12px;padding:5px 9px;border:1px solid var(--border,#c6d8ce);border-radius:8px;color:var(--accent,#276e5d)}
+#app #updates-open[aria-expanded=true]{background:var(--accent,#276e5d);color:#fff}
+#app .update-entry{border-top:1px solid var(--border,#c6d8ce);padding-top:10px;margin-top:14px}#app .update-entry h3{font-size:15px;margin:4px 0 10px}#app .update-entry ul{padding-left:20px;margin:8px 0}#app .update-entry li{line-height:1.7;margin:10px 0}#app .updates-current{font-size:12px;color:var(--accent,#276e5d)}
+@media(max-width:700px){#app .stats{gap:5px!important;justify-content:space-between}#app .stats span{font-size:10px;white-space:nowrap}#app .stats b{font-size:13px}#app #updates-open{font-size:10px;padding:4px;min-height:30px}}

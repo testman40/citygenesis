@@ -1,7 +1,13 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>都市成長・施設拡張版</strong></p>
+<p class="updates-current">表示中の版：<strong>統合HUD・操作配置改訂版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-19：ゲーム画面の操作配置を再設計</h3>
+<ul><li><strong>状況は上、道具は左</strong> — タイトル・人口・資金・月次収支・Lv・年月・速度を1本の帯へ。資金は万・億の整数表示、年月は開始月を1年1月として表示します。取り消し・やり直しと歯車も上部にまとめました。</li>
+<li><strong>設定は下、案内は右上</strong> — 道路・区画・電力・水道の設定は選択時だけ下部に表示。道路の種類・形状・単価を確認できます。通知は右上に新しい順で積み、約6秒で消えます。</li>
+<li><strong>色とアイコンで判別</strong> — 左の道具と地図の丸い札に共通の種類別カラーを使用。白いパネル、濃い文字、12px以上のボタンで統一しました。</li>
+<li><strong>既存操作の入口を維持</strong> — 保存・音・遊び方・更新履歴は歯車へ。都市情報・経営・施設一覧・都市の成長・視点操作は左の「情報」へ移動しました。</li></ul>
+<p class="workspace-tip">建設・経営・交通・都市保存の処理は変更していません。短縮前の金額は上部の数値にマウスを乗せるか経営画面で確認できます。</p></article>
 <article class="update-entry"><h3>2026-10-18：都市の成長と解放施設</h3>
 <ul><li><strong>都市の成長画面</strong> — 開発ツリー・都市段階・課題と実績を切り替え、解放条件・費用・定員を確認できます。上部のレベル表示からも開けます。</li>
 <li><strong>レベルで新施設を解放</strong> — Lv2で図書館、Lv3で大学、Lv4で総合医療センター、Lv5で研究教育センター。既存の医療・教育サービスに定員を追加し、道路接続と予算が効果を左右します。</li>

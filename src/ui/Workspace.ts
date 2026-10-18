@@ -48,7 +48,7 @@ export class Workspace {
     element<HTMLDetailsElement>('management-panel').open=true;
     const help=element('help-panel');help.hidden=false;help.insertAdjacentHTML('beforeend','<p>歩行者は近くの住宅・商業に対応する代表的な街路表現です。待ち客は月次の需要をもとに表示し、1人の表示が住民1人に対応するものではありません。遠景で非表示、近景で最大128人です。</p><p>建設のやり直し：Ctrl / ⌘ + Shift + Z、またはCtrl + Y。時間を進めると建設履歴を終了します。</p>');
     help.insertAdjacentHTML('beforebegin','<button id="tutorial-start" type="button">街づくりチュートリアルを開始・再表示</button><p>途中で閉じても、都市の状態はそのままです。</p>');
-    element('workspace-menu').addEventListener('click',e=>{const button=(e.target as HTMLElement).closest<HTMLElement>('[data-workspace]');if(button){const category=button.dataset.workspace as Category;this.open(this.category===category?null:category);}});
+    app.addEventListener('click',e=>{const button=(e.target as HTMLElement).closest<HTMLElement>('button[data-workspace]');if(button){const category=button.dataset.workspace as Category;this.open(this.category===category?null:category);}});
     element('workspace-close').onclick=()=>this.close(true);
     element('undo-build').onclick=()=>this.onUndo();element('redo-build').onclick=()=>this.onRedo();
     element('tutorial-start').onclick=()=>{this.tutorial=true;this.dismissed=false;this.close();this.invalidate();};
@@ -77,7 +77,7 @@ export class Workspace {
     if(category==='manage'){element<HTMLDetailsElement>('management-panel').open=true;if(element<HTMLDetailsElement>('finance-panel').open){this.financeViewed=true;this.invalidate();}}
     this.onNavigate(category);
   }
-  close(focus=false){const previous=this.category;this.open(null);if(focus&&previous){if(previous==='updates')element('updates-open').focus();else document.querySelector<HTMLElement>(`[data-workspace="${previous}"]`)?.focus();}}
+  close(focus=false){const previous=this.category;this.open(null);if(focus&&previous){if(previous==='updates'){const b=element('updates-open');if(b.getClientRects().length)b.focus();else document.getElementById('hud-settings')?.focus();}else{const b=document.querySelector<HTMLElement>(`[data-workspace="${previous}"]`);if(b?.getClientRects().length)b.focus();else document.querySelector<HTMLElement>(['save','audio','help'].includes(previous)?'#hud-settings':'[data-hud-group="info"]')?.focus();}}}
   reveal(panel:string){
     this.open(panel.startsWith('bus-')?'transit':'manage');
     const target=document.getElementById(panel);if(!target)return;

@@ -185,3 +185,5 @@ body[data-workspace]:not([data-workspace=""]) #app #road-panel{display:none}
 .road-catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:10px 0}.road-catalog-grid button{display:flex;flex-direction:column;align-items:center;padding:9px 5px;gap:4px;font-size:12px}.road-catalog-grid svg{width:24px;height:24px}.road-catalog-grid small{font-size:10px}#road-catalog p{font-size:12px;line-height:1.6}
 
 #app .road-catalog-grid button[aria-pressed="true"] small{color:rgba(255,255,255,.92)}
+
+#app #info-live{border-top:1px solid var(--border);padding-top:8px;margin:8px 0}#app #info-live strong{display:block;font-size:14px;margin:4px 0}#app #info-live p{font-size:12px;line-height:1.6;margin:5px 0}#app #info-live small{display:block;font-size:11px;line-height:1.5}#app #info-live-meter{display:block;width:100%;height:12px;margin:6px 0}

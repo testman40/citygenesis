@@ -1,7 +1,12 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>道路と移動手段の拡張版</strong></p>
+<p class="updates-current">表示中の版：<strong>水質・交通の情報更新版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-18：水質・交通を自動更新</h3>
+<ul><li><strong>水質・環境ビュー</strong> — 情報メニューから直接開けます。残留負荷率、下水発生・処理・未処理・残留量と、選択した管網の状態を表示します。</li>
+<li><strong>交通の現在状況</strong> — 表示中の車・バス・自転車を走行／停止に分けて観測。道路を選ぶと需要・容量・表示台数・信号を確認できます。</li>
+<li><strong>約0.25秒ごとに更新</strong> — 開いている情報欄を自動更新。一時停止・都市更新中を表示し、施設・配管の変更は計算確定後に反映します。</li></ul>
+<p class="workspace-tip">水質は既存の汚水負荷モデルで、河川の濃度・拡散は未計算です。交通の台数は描画対象の代表車両で、都市全体の交通需要とは異なります。保存形式は変更しません。</p></article>
 <article class="update-entry"><h3>2026-10-18：道路と移動手段を拡張</h3>
 <ul><li><strong>歩道と横断歩道</strong> — 徒歩の住民追跡は歩道を通り、横断歩道では青を待ちます。高速道路に人は入りません。</li>
 <li><strong>道路を使い分け</strong> — 生活道路、2車線・4車線（中央分離帯あり・なし）、高速道路、自転車道を建設メニューから選択。速度・容量・費用が異なります。</li>

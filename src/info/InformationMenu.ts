@@ -5,6 +5,7 @@ export const INFO_TABS=[
  {id:'happiness',label:'幸福度',icon:icon('M12 21S3 15 3 9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12-9 12Z')},
  {id:'water',label:'水道',icon:icon('M12 2 5 12a8 8 0 1 0 14 0L12 2ZM8 15c0 3 2 4 4 4')},
  {id:'sewage',label:'下水・汚水',icon:icon('M4 5h10v6h6M7 2v6m5 7 3 3 3-3M3 21c3-3 5 3 8 0s5 3 10 0')},
+ {id:'environment',label:'水質・環境',icon:icon('M3 17c3-3 5 3 9 0s6 3 9 0M3 21c3-3 5 3 9 0s6 3 9 0M12 2l-4 7a5 5 0 1 0 8 0L12 2Z')},
  {id:'traffic',label:'交通',icon:icon('M7 3 3 21m14-18 4 18M12 3v4m0 4v3m0 4v3')},
  {id:'transit',label:'バス・公共交通',icon:icon('M5 17V5c0-3 14-3 14 0v12H5Zm0-7h14M8 17v4m8-4v4M8 13h1m6 0h1')},
  {id:'power',label:'電力',icon:icon('m14 2-9 12h7l-2 8 9-12h-7l2-8Z')},

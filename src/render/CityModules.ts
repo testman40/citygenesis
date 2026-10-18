@@ -16,7 +16,7 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
  for(let z=cz*16;z<Math.min(city.size,(cz+1)*16);z++)for(let x=cx*16;x<Math.min(city.size,(cx+1)*16);x++){
   const tileStart=parts.length;const begin=profile?performance.now():0;owner=z*city.size+x;const c={x,z},t=city.hasRoad(c)?ROAD_TILE:city.tile(c),seed=hash(x,z),px=x+.5,pz=z+.5;
   const hydro=city.hydrology;
-  if(hydro?.river.has(owner)&&!t.road){add('surface',px,.035,pz,1,.06,1,overlay==='sewage'&&city.sanitation&&hydro.untreated>.001?'#9aa47b':overlay==='normal'?'#4b9fb8':'#639cb0');if(quality==='high'&&seed%3===0)mark('detail',px,.07,pz,.46,.008,.035,'#9bced6');continue;}
+  if(hydro?.river.has(owner)&&!t.road){add('surface',px,.035,pz,1,.06,1,overlay==='sewage'||overlay==='environment'?INFO_STYLE.neutral.color:overlay==='normal'?'#4b9fb8':'#639cb0');if(quality==='high'&&seed%3===0)mark('detail',px,.07,pz,.46,.008,.035,'#9bced6');continue;}
   if((overlay==='water'||overlay==='sewage')&&hydro?.pipes.has(owner)){const a=hydro.neighbors(owner).filter(id=>hydro.pipes.has(id)),v=overlay==='sewage'?(city.sanitation?hydro.treatmentAt(owner).ratio:0):hydro.at(owner),col=INFO_STYLE[informationAt(city,owner,overlay).state].color;mark('surface',px,.13,pz,.18,.018,.18,col);for(const id of a){const dx=id%city.size-x,dz=Math.floor(id/city.size)-z;mark('surface',px+dx*.25,.13,pz+dz*.25,dx?.5:.09,.018,dz?.5:.09,col);}}
   const access=[city.hasRoad({x,z:z-1}),city.hasRoad({x:x+1,z}),city.hasRoad({x,z:z+1}),city.hasRoad({x:x-1,z})];
   const degree=access.filter(Boolean).length;

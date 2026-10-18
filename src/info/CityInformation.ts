@@ -1,5 +1,5 @@
 import type {City} from '../simulation/City';
-export const INFO_MODES={normal:'通常',happiness:'幸福度（都市値・区域条件）',demand:'開発需要',power:'電力',water:'水道',sewage:'下水・汚水',network:'道路接続',traffic:'交通・渋滞',transit:'公共交通',fire:'消防',police:'治安',medical:'医療',education:'教育',environment:'環境（汚水負荷のみ）'} as const;
+export const INFO_MODES={normal:'通常',happiness:'幸福度（都市値・区域条件）',demand:'開発需要',power:'電力',water:'水道',sewage:'下水・汚水',network:'道路接続',traffic:'交通・渋滞',transit:'公共交通',fire:'消防',police:'治安',medical:'医療',education:'教育',environment:'水質・環境（汚水負荷）'} as const;
 export type InfoMode=keyof typeof INFO_MODES;
 export const INFO_STYLE={green:{color:'#42bf89',symbol:'●',label:'良好・充足'},blue:{color:'#4e9ee9',symbol:'＝',label:'注意・改善余地'},red:{color:'#ef646b',symbol:'×',label:'問題・不足'},neutral:{color:'#9ba9ae',symbol:'—',label:'対象外・未開始'}} as const;
 export type InfoState=keyof typeof INFO_STYLE;
@@ -7,7 +7,7 @@ export const INFO_THRESHOLDS={good:.8,caution:.4,trafficGood:.7,trafficLimit:1,d
 export function fulfillment(v:number):InfoState{return v>=INFO_THRESHOLDS.good?'green':v>=INFO_THRESHOLDS.caution?'blue':'red';}
 export function informationAt(c:City,id:number,mode:InfoMode):{state:InfoState;value:number|null;note:string}{
  const x=id%c.size,z=Math.floor(id/c.size);if(!Number.isInteger(id)||!c.contains({x,z}))return {state:'neutral',value:null,note:'マップ外'};
- const t=c.tile({x,z}),h=c.hydrology,w=c.waterUtility;if(w&&['water','sewage','environment'].includes(mode)&&!t.road&&!t.zone&&!t.facility&&!h?.pipes.has(id))return {state:'neutral',value:null,note:'給排水の対象外'};let value:number|null=null,note='';let state:InfoState|undefined;
+ const t=c.tile({x,z}),h=c.hydrology,w=c.waterUtility;if(h?.river.has(id)&&['water','sewage','environment'].includes(mode))return {state:'neutral',value:null,note:'河川の水質濃度・拡散は未計算。施設・管網の汚水負荷を確認してください'};if(w&&['water','sewage','environment'].includes(mode)&&!t.road&&!t.zone&&!t.facility&&!h?.pipes.has(id))return {state:'neutral',value:null,note:'給排水の対象外'};let value:number|null=null,note='';let state:InfoState|undefined;
  switch(mode){
  case 'normal':return {state:'neutral',value:null,note:'用途色'};
  case 'happiness':value=c.satisfaction/100;note='都市全体の実測値。このマスの公園効果 +'+c.parks.at(id).toFixed(1)+'（都市値には住宅の平均効果を反映）';break;

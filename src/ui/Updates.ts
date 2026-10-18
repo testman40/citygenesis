@@ -1,7 +1,9 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>水質・交通の情報更新版</strong></p>
+<p class="updates-current">表示中の版：<strong>情報表示・ポップアップ改善版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-18：ポップアップを見分けやすく</h3>
+<ul><li><strong>案内とメニューを色分け</strong> — 地図上の操作案内・住民追跡・読込などは濃紺と白文字に、達成通知は淡い金色に変更しました。メニューは白系です。</li></ul></article>
 <article class="update-entry"><h3>2026-10-18：水質・交通を自動更新</h3>
 <ul><li><strong>水質・環境ビュー</strong> — 情報メニューから直接開けます。残留負荷率、下水発生・処理・未処理・残留量と、選択した管網の状態を表示します。</li>
 <li><strong>交通の現在状況</strong> — 表示中の車・バス・自転車を走行／停止に分けて観測。道路を選ぶと需要・容量・表示台数・信号を確認できます。</li>

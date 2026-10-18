@@ -187,3 +187,13 @@ body[data-workspace]:not([data-workspace=""]) #app #road-panel{display:none}
 #app .road-catalog-grid button[aria-pressed="true"] small{color:rgba(255,255,255,.92)}
 
 #app #info-live{border-top:1px solid var(--border);padding-top:8px;margin:8px 0}#app #info-live strong{display:block;font-size:14px;margin:4px 0}#app #info-live p{font-size:12px;line-height:1.6;margin:5px 0}#app #info-live small{display:block;font-size:11px;line-height:1.5}#app #info-live-meter{display:block;width:100%;height:12px;margin:6px 0}
+
+/* Floating guidance uses its own palette so it stands apart from white menus. */
+:root{--popup-bg:#223b57;--popup-ink:#f6f9ff;--popup-muted:#d5e1f2;--popup-border:#7aa2ce;--popup-button:#335979;--popup-hover:#406c92;--popup-focus:#ffd47b}
+#app :is(#tool-cursor,#operation-hint,#guide-panel,#undo-status,#resident-tracking,#scenario-current,#load-progress){--text-main:var(--popup-ink);--text-sub:var(--popup-muted);--text-muted:var(--popup-muted);--accent:#a9d1ff;--bg-panel:var(--popup-bg);--bg-soft:var(--popup-button);color:var(--popup-ink);background:var(--popup-bg);border:1px solid var(--popup-border);box-shadow:0 5px 18px #10263c40}
+#app :is(#guide-panel,#resident-tracking,#load-progress) small{color:var(--popup-muted)}
+#app :is(#guide-panel,#resident-tracking,#load-progress) button{color:var(--popup-ink);background:var(--popup-button);border-color:var(--popup-border)}
+#app :is(#guide-panel,#resident-tracking,#load-progress) button:hover,#app #scenario-current:hover{background:var(--popup-hover)}
+#app :is(#guide-panel,#resident-tracking,#load-progress) button:focus-visible,#app #scenario-current:focus-visible{outline-color:var(--popup-focus)}
+#app #load-progress progress{accent-color:#a9d1ff}
+#app #goal-toast{color:#5b3b0a;background:#fff1c8;border:2px solid #c48a23;box-shadow:0 5px 18px #56380733}

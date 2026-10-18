@@ -8,7 +8,7 @@ const running=(state:CityState)=>state.transit?.infrastructure?.buses.some(bus=>
 export class BuildHistory {
  private entries:Entry[]=[];private redoEntries:Entry[]=[];private owner:City|undefined;private expected='';private bytes=0;
  reason='一時停止中の建設・撤去を取り消し・やり直しできます。';
- clear(reason='時間の進行・別の操作・都市切替で履歴を終了しました。'){this.entries=[];this.redoEntries=[];this.bytes=0;this.owner=undefined;this.expected='';this.reason=reason;}
+ clear(reason='これより前の操作は取り消せなくなりました'){this.entries=[];this.redoEntries=[];this.bytes=0;this.owner=undefined;this.expected='';this.reason=reason;}
  supports(city:City,tool:Tool){return tools.has(tool)&&![...city.transit.operations.buses.values()].some(bus=>bus.state!=='garage');}
  record(city:City,before:CityState,label:string){
   const after=city.snapshot(),a=encoded(before),b=encoded(after);if(a===b)return false;

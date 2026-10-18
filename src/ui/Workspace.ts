@@ -35,7 +35,7 @@ export class Workspace {
       <div data-workspace-page="build"><p>ツールを選んで地図を操作します。</p>${tools.map(([label,items])=>`<details ${label==='街の基本'?'open':''}><summary>${label}</summary><div class="build-palette">${items.map(([tool,label])=>`<button data-tool="${tool}">${label}</button>`).join('')}</div></details>`).join('')}<p id="scenery-status" class="workspace-tip"></p><p class="workspace-tip">道路・区画・施設・地下管・橋は一時停止中に取り消し・やり直しできます。運行中の管理バスがある都市と、停留所の配置・撤去は対象外です。</p></div>
       ${['info','transit','manage','save','help','updates','goals','audio'].map(id=>`<div data-workspace-page="${id}" id="workspace-${id}"></div>`).join('')}
     </section>
-    <section id="guide-panel" aria-label="都市づくりの案内"><div class="guide-heading"><b id="guide-kind">次にすること</b><button id="guide-dismiss" type="button" aria-label="案内を小さくする">−</button></div><div id="guide-content"></div><button id="guide-expand" type="button" hidden>案内を表示</button></section>
+    <section id="guide-panel" aria-label="都市づくりの案内"><div class="guide-heading"><b id="guide-kind">次にすること</b><button id="guide-dismiss" type="button" aria-label="案内を小さくする">−</button></div><p id="guide-funds" role="status" hidden></p><div id="guide-content"></div><button id="guide-expand" type="button" hidden>案内を表示</button></section>
     <p id="undo-status" role="status">建設・撤去を取り消し・やり直しできます。</p>`);
     element('workspace-updates').innerHTML=UPDATES_HTML;
     const updates=document.createElement('button');updates.id='updates-open';updates.type='button';updates.textContent='更新履歴';updates.setAttribute('aria-label','アップデート履歴を開く');updates.setAttribute('aria-controls','workspace-drawer');updates.setAttribute('aria-expanded','false');
@@ -95,12 +95,13 @@ export class Workspace {
     if(performance.now()-this.stamp<300)return;this.stamp=performance.now();
     element('scenery-status').textContent='公園は4マス、広場は3マスの範囲で住宅へ効果（道路接続が必要）。重複は最大値。現在の都市平均：満足度 +'+city.sceneryBonus.toFixed(1)+' / 住宅需要 +'+(city.sceneryBonus*1.5).toFixed(1)+'。';
     const steps=tutorialSteps(city,this.financeViewed,this.undoUsed),step=steps.find(s=>!s.done);
-    const actions=nextActions(city),signature=JSON.stringify([this.tutorial,steps,actions]);
+    const actions=nextActions(city).filter(a=>a.id!=='healthy'),signature=JSON.stringify([this.tutorial,city.funds<0,steps,actions]);
+    const shortage=city.funds<0;element('guide-panel').dataset.fundsNegative=String(shortage);element('guide-funds').hidden=!shortage;const fundsMessage=shortage?'資金が足りません:住宅を建てて人口を増やすと税収が入ります':'';if(element('guide-funds').textContent!==fundsMessage)element('guide-funds').textContent=fundsMessage;element('guide-panel').hidden=!shortage&&!this.tutorial&&actions.length===0;
     if(signature===this.signature)return;this.signature=signature;
-    element('guide-kind').textContent=this.tutorial?'街づくり '+steps.filter(s=>s.done).length+'/'+steps.length:'次にすること';
+    element('guide-kind').textContent=this.tutorial&&!shortage?'街づくり '+steps.filter(s=>s.done).length+'/'+steps.length:'次にすること';
     const content=element('guide-content');content.replaceChildren();
     const text=(tag:string,value:string)=>{const el=document.createElement(tag);el.textContent=value;content.append(el);return el;};
-    const button=(label:string,kind:string,action?:GuideAction)=>{const el=document.createElement('button');el.type='button';el.textContent=label;el.dataset.guide=kind;if(action)el.dataset.action=JSON.stringify(action);content.append(el);};
+    const button=(label:string,kind:string,action?:GuideAction)=>{const el=document.createElement('button');el.type='button';if(label==='その場所へ移動')el.innerHTML=toolIcon('pin')+'<span>'+label+'</span>';else el.textContent=label;el.dataset.guide=kind;if(action)el.dataset.action=JSON.stringify(action);content.append(el);};
     if(this.tutorial){
       if(step){text('strong',step.title);text('p',step.description);
         if(step.tool||step.panel)button(step.panel?'関連パネルを開く':'ツールを選ぶ','action',{id:step.id,title:step.title,reason:'',action:'',tool:step.tool,panel:step.panel});
@@ -109,13 +110,13 @@ export class Workspace {
         if(steps.some(s=>s.done))text('small',steps.filter(s=>s.done).length+'項目を達成。操作は好きな順に試せます。');
       }else{text('strong','街づくりの基本を達成しました');text('p','ここからは街の需要や市民の要望を見ながら、自由に発展させましょう。');}
       button(step?'スキップして自由に遊ぶ':'自由に遊ぶ','skip');
-    }else{
+    }else if(actions.length){
       const action=actions[0];text('strong',action.title);text('p',action.reason+' '+action.action);
+      if(action.location)button('その場所へ移動','action',{...action,tool:undefined,mode:undefined,panel:undefined});
       if(action.tool||action.panel||action.mode)button(action.panel?'関連パネルを開く':action.tool?'対処するツールを選ぶ':'関連する都市情報を見る','action',action);
-      if(action.location)button('問題の区域へ移動','action',{...action,tool:undefined,mode:undefined,panel:undefined});
-      if(actions.length>1){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='ほかの案内 '+(actions.length-1)+'件';details.append(summary);for(const extra of actions.slice(1)){const b=document.createElement('button');b.type='button';b.textContent=extra.title;b.dataset.guide='action';b.dataset.action=JSON.stringify(extra);details.append(b);}content.append(details);}
+      if(actions.length>1){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='ほかの案内 '+(actions.length-1)+'件 ▼';details.append(summary);for(const extra of actions.slice(1)){const b=document.createElement('button');b.type='button';b.textContent=extra.title;b.dataset.guide='action';b.dataset.action=JSON.stringify(extra);details.append(b);}content.append(details);}
     }
     this.paintCollapsed();
   }
-  private paintCollapsed(){element('guide-content').hidden=this.dismissed;element('guide-expand').hidden=!this.dismissed;element('guide-dismiss').hidden=this.dismissed;}
+  private paintCollapsed(){const collapsed=this.tutorial&&this.dismissed;element('guide-content').hidden=collapsed;element('guide-expand').hidden=!collapsed;element('guide-dismiss').hidden=!this.tutorial||collapsed;}
 }

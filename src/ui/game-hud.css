@@ -62,12 +62,9 @@ body.hud-layout[data-hud-tool="erase"] #app #road-panel,body.hud-layout:not([dat
 body.hud-layout #app .workspace-heading{position:sticky;top:-12px;background:white;color:var(--hud-ink);border-color:var(--hud-line);padding:7px 0;z-index:3}
 body.hud-layout #app #workspace-title{color:var(--hud-ink);font-size:16px;margin:0}
 body.hud-layout #app #workspace-close{background:#f2f5f6;color:var(--hud-ink);border:1px solid var(--hud-line)}
-body.hud-layout #app #hud-info-tabs,body.hud-layout #app #hud-view-controls{display:flex;flex-wrap:wrap;gap:5px;padding:7px 0}
-body.hud-layout #app #hud-info-tabs button,body.hud-layout #app #hud-view-controls button{display:flex;align-items:center;gap:5px;padding:6px 9px;background:#f2f5f6;border:1px solid var(--hud-line)}
+body.hud-layout #app #hud-info-tabs{display:flex;flex-wrap:wrap;gap:5px;padding:7px 0}
+body.hud-layout #app #hud-info-tabs button{display:flex;align-items:center;gap:5px;padding:6px 9px;background:#f2f5f6;border:1px solid var(--hud-line)}
 body.hud-layout #app #hud-info-tabs button.active{background:#36434d;color:white}
-body.hud-layout #app #hud-view-controls{border-bottom:1px solid var(--hud-line);padding-bottom:9px;margin-bottom:10px}
-body.hud-layout #app #hud-view-controls kbd{display:none}
-body.hud-layout #app #hud-view-controls svg{width:18px;height:18px}
 body.hud-layout #app #hud-notices{position:fixed;z-index:28;top:var(--hud-top);right:12px;width:290px;max-width:calc(100vw - var(--hud-rail) - 48px);max-height:calc(48dvh - var(--hud-top) - 16px);overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:8px;pointer-events:none;scrollbar-width:thin}
 body.hud-layout #app #hud-notices>*{pointer-events:auto;flex-shrink:0}
 body.hud-layout #app #hud-notice-feed{display:flex;flex-direction:column;gap:7px}
@@ -100,20 +97,124 @@ body.hud-layout .bus-map-stop,body.hud-layout.night-mode .bus-map-stop{backgroun
 body.hud-layout .bus-map-stop svg{width:19px;height:19px;display:block}body.hud-layout .bus-map-order{position:absolute;top:-9px;right:-12px;background:#534ab7;border:1px solid white;border-radius:8px;color:white;padding:0 3px;font-size:12px}
 @media(max-height:720px){body.hud-layout #app #hud-tools button{min-height:46px;padding:4px 2px;gap:2px}body.hud-layout #app #hud-tools button svg{width:20px;height:20px}}
 @media(max-width:1100px){body.hud-layout #app #hud-topbar{gap:10px;padding:8px 10px}body.hud-layout #app #hud-topbar .brand{font-size:13px}body.hud-layout #app #hud-topbar .stats{gap:10px!important}body.hud-layout #app #hud-topbar .stats b{font-size:14px}body.hud-layout #app #hud-topbar .stats>span{flex-direction:column;gap:0;font-size:11px!important}body.hud-layout #app #playback{gap:5px!important}body.hud-layout #app #hud-notices{width:245px}}
-@media(max-width:800px){body.hud-layout{--hud-rail:60px;--hud-top:112px}body.hud-layout #app #hud-topbar{height:90px;display:grid;grid-template-columns:1fr auto;gap:5px 8px;padding:7px 10px}body.hud-layout #app #hud-topbar .brand{display:none}body.hud-layout #app #hud-topbar .stats{grid-column:1/-1;justify-content:space-between}body.hud-layout #app #hud-topbar .stats>span{flex-direction:row;gap:4px;font-size:12px!important}body.hud-layout #app #hud-topbar #playback{justify-content:flex-start;gap:8px!important}body.hud-layout #app #hud-topbar #playback button{min-height:30px;width:30px;padding:3px}body.hud-layout #app #hud-header-actions button{width:30px;height:30px;min-height:30px;padding:5px}body.hud-layout #app #playback time{font-size:12px}body.hud-layout #app #hud-tools{left:8px;padding:4px;bottom:8px}body.hud-layout #app #hud-tools button{min-height:49px;padding:4px 1px;gap:2px}body.hud-layout #app #hud-tools button svg{width:20px;height:20px}body.hud-layout #app #hud-notices{right:8px;width:245px;max-width:calc(100vw - 84px);max-height:calc(48dvh - var(--hud-top) - 12px)}body.hud-layout #app :is(#hud-context,#workspace-drawer){left:calc(50% + 34px);width:calc(100vw - 88px);max-width:calc(100vw - 88px);bottom:21px;padding:10px;max-height:48dvh}body.hud-layout #app #hud-context{max-height:35dvh}body.hud-layout #app .workspace-heading{top:-10px}body.hud-layout #app .hud-context-heading{gap:6px}body.hud-layout #app #hud-cost{font-size:12px}body.hud-layout #app .hud-tool-options button,body.hud-layout #app .road-icon-options button{padding:6px 8px;gap:4px}body.hud-layout #app #hud-tool-tip{max-width:calc(100vw - 92px)}body.hud-layout #app #hud-notices #guide-panel{padding:8px 10px}body.hud-layout #app #road-catalog .road-catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body.hud-layout #app #hud-view-controls button{flex:1}body.hud-layout #app #hud-info-tabs button{flex:1;justify-content:center}body.hud-layout #app #hud-info-tabs button svg{display:none}body.hud-layout #app footer{left:82px;right:8px;font-size:12px}body.hud-layout #app footer #cell{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}body.hud-layout #app footer>span:last-child{display:none}}
+@media(max-width:800px){body.hud-layout{--hud-rail:60px;--hud-top:112px}body.hud-layout #app #hud-topbar{height:90px;display:grid;grid-template-columns:1fr auto;gap:5px 8px;padding:7px 10px}body.hud-layout #app #hud-topbar .brand{display:none}body.hud-layout #app #hud-topbar .stats{grid-column:1/-1;justify-content:space-between}body.hud-layout #app #hud-topbar .stats>span{flex-direction:row;gap:4px;font-size:12px!important}body.hud-layout #app #hud-topbar #playback{justify-content:flex-start;gap:8px!important}body.hud-layout #app #hud-topbar #playback button{min-height:30px;width:30px;padding:3px}body.hud-layout #app #hud-header-actions button{width:30px;height:30px;min-height:30px;padding:5px}body.hud-layout #app #playback time{font-size:12px}body.hud-layout #app #hud-tools{left:8px;padding:4px;bottom:8px}body.hud-layout #app #hud-tools button{min-height:49px;padding:4px 1px;gap:2px}body.hud-layout #app #hud-tools button svg{width:20px;height:20px}body.hud-layout #app #hud-notices{right:8px;width:245px;max-width:calc(100vw - 84px);max-height:calc(48dvh - var(--hud-top) - 12px)}body.hud-layout #app :is(#hud-context,#workspace-drawer){left:calc(50% + 34px);width:calc(100vw - 88px);max-width:calc(100vw - 88px);bottom:21px;padding:10px;max-height:48dvh}body.hud-layout #app #hud-context{max-height:35dvh}body.hud-layout #app .workspace-heading{top:-10px}body.hud-layout #app .hud-context-heading{gap:6px}body.hud-layout #app #hud-cost{font-size:12px}body.hud-layout #app .hud-tool-options button,body.hud-layout #app .road-icon-options button{padding:6px 8px;gap:4px}body.hud-layout #app #hud-tool-tip{max-width:calc(100vw - 92px)}body.hud-layout #app #hud-notices #guide-panel{padding:8px 10px}body.hud-layout #app #road-catalog .road-catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body.hud-layout #app #hud-info-tabs button{flex:1;justify-content:center}body.hud-layout #app #hud-info-tabs button svg{display:none}body.hud-layout #app footer{left:82px;right:8px;font-size:12px}body.hud-layout #app footer #cell{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}body.hud-layout #app footer>span:last-child{display:none}}
 @media(max-width:360px){body.hud-layout #app #hud-topbar .stats>span{font-size:11px!important;gap:2px}body.hud-layout #app #hud-topbar .stats b{font-size:13px}body.hud-layout #app #hud-header-actions{gap:2px}body.hud-layout #app #hud-header-actions button{width:27px}body.hud-layout #app #hud-topbar #playback{gap:4px!important}body.hud-layout #app #playback button{width:26px!important}body.hud-layout #app #playback>div{gap:2px}}
 @media(prefers-reduced-motion:reduce){body.hud-layout #app *{transition:none!important;animation:none!important}}
 
 body.hud-layout #app #hud-topbar .brand{border:0;background:transparent;padding:0;box-shadow:none}
 body.hud-layout #app #hud-topbar #funds{color:var(--hud-ink)!important}
+body.hud-layout #app #hud-topbar #funds[data-tone="negative"]{color:#a32d2d!important}
 body.hud-layout #app #information-toolbar{display:block!important}
-body.hud-layout #app #information-toolbar .information-groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:7px}
-body.hud-layout #app #information-subviews{display:flex;flex-wrap:wrap;gap:5px}
+body.hud-layout #app #information-toolbar .information-shortcuts{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
 body.hud-layout #app #information-toolbar button{position:relative;background:#f2f5f6;border:1px solid var(--hud-line);color:var(--hud-ink)}
-body.hud-layout #app #information-toolbar button[aria-pressed="true"],body.hud-layout #app #hud-view-controls button.active,body.hud-layout #app .build-palette button.active{background:#36434d;color:white}
+body.hud-layout #app #information-toolbar button[aria-pressed="true"],body.hud-layout #app .build-palette button.active{background:#36434d;color:white}
 @media(max-width:800px){body.hud-layout{--hud-top:140px}body.hud-layout #app #hud-topbar{height:118px;grid-template-rows:auto auto auto}body.hud-layout #app #hud-topbar .brand{display:block;grid-column:1/-1;grid-row:1;font-size:12px}body.hud-layout #app #hud-topbar .stats{grid-row:2}body.hud-layout #app #hud-topbar #playback{grid-row:3;grid-column:1}body.hud-layout #app #hud-header-actions{grid-row:3;grid-column:2}}
 body.hud-layout #app #hud-topbar .hud-level{display:inline-block!important;padding:4px 7px!important;background:#f2f5f6;border:1px solid var(--hud-line);border-radius:7px;pointer-events:none;line-height:1.5}
 body.hud-layout #app #history-graph svg{background:#f5f7f8}body.hud-layout #app #history-graph text{fill:#17252b}body.hud-layout #app #history-graph polyline{stroke:#185fa5}
 
 body.hud-layout .bus-map-stop.selected{outline:3px solid var(--route-color);outline-offset:2px}
 body.hud-layout #app #environment-diagram svg{display:block;width:100%;max-width:420px;max-height:170px;margin:0 auto}
+
+/* Selection and camera controls remain available outside information menus. */
+body.hud-layout #app #hud-camera-controls{position:fixed;right:12px;bottom:32px;z-index:24;display:flex;flex-direction:column;gap:5px}
+body.hud-layout #app #hud-camera-controls button{display:flex;align-items:center;justify-content:center;gap:4px;min-height:34px;padding:5px 8px;background:white;color:var(--hud-ink);border:1px solid var(--hud-line);box-shadow:var(--hud-shadow)}
+body.hud-layout #app #hud-camera-controls svg{width:18px;height:18px}
+body.hud-layout #app #hud-info-tabs button{font-size:14px!important;min-height:42px}
+body.hud-layout #app #workspace-drawer #information-toolbar .information-shortcuts button{display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px!important;min-height:34px;padding:6px 9px;flex:0 0 auto;white-space:nowrap}
+body.hud-layout #app #information-toolbar .info-count{position:static!important;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;min-width:20px;height:20px;padding:0 5px;border-radius:50%;background:#b65b0a;color:white;font-size:12px;line-height:20px}
+body.hud-layout #app #info-detail-label{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:12px;color:var(--hud-ink)}
+body.hud-layout #app #info-detail-view{max-width:100%;min-width:0;flex:1}
+@media(max-width:800px){body.hud-layout #app #hud-camera-controls{right:8px;bottom:32px}body.hud-layout #app #hud-camera-controls button{flex-direction:column;width:44px;padding:5px 2px;gap:1px}body.hud-layout #app :is(#hud-context,#workspace-drawer){left:calc(50% + 6px);width:calc(100vw - 144px);max-width:calc(100vw - 144px)}}
+
+@media(max-width:800px){body.hud-layout #app #hud-info-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}body.hud-layout #app #hud-info-tabs button{white-space:normal;text-align:center;padding:6px 3px}}
+
+.hud-sheet-grip{display:none}
+/* Phone layout: keep the map above a horizontal tool bar and resizable sheet. */
+@media(max-width:700px){
+ body.hud-layout{--hud-top:110px;--hud-mobile-bar:calc(68px + env(safe-area-inset-bottom,0px));--hud-visible-sheet:0px}
+ body.hud-layout[data-mobile-panel-open="true"]{--hud-visible-sheet:var(--hud-sheet-height,33.333dvh)}
+ body.hud-layout #app #hud-topbar{inset:8px 8px auto;height:92px;padding:7px 8px;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:32px 34px;gap:4px}
+ body.hud-layout #app #hud-topbar :is(.brand,.hud-level),body.hud-layout #app #hud-topbar #city-growth-open{display:none!important}
+ body.hud-layout #app #hud-topbar .stats{grid-row:1;grid-column:1/-1;gap:8px!important;justify-content:space-between}
+ body.hud-layout #app #hud-topbar .stats>span{font-size:12px!important;gap:3px;min-width:0}
+ body.hud-layout #app #hud-topbar .stats b{font-size:14px;white-space:nowrap}
+ body.hud-layout #app #hud-topbar #playback{grid-row:2;grid-column:1;gap:6px!important;min-width:0}
+ body.hud-layout #app #hud-topbar #hud-header-actions{grid-row:2;grid-column:2;gap:3px}
+ body.hud-layout #app #playback time{font-size:12px}
+ body.hud-layout #app #hud-tools{inset:auto 0 0 0;width:100%;height:var(--hud-mobile-bar);max-width:none;max-height:none;border-radius:12px 12px 0 0;display:flex;flex-direction:row;align-items:flex-start;gap:4px;padding:5px 8px calc(5px + env(safe-area-inset-bottom,0px));overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;touch-action:pan-x;scrollbar-width:none}
+ body.hud-layout #app #hud-tools::-webkit-scrollbar{display:none}
+ body.hud-layout #app #hud-tools button{flex:0 0 52px;width:52px;min-height:54px;padding:4px 2px;gap:3px}
+ body.hud-layout #app #hud-tools button[data-hud-group="erase"]{border-top:0;border-left:1px solid var(--hud-line);margin:0 0 0 3px}
+ body.hud-layout #app :is(#hud-context,#workspace-drawer){inset:auto 0 var(--hud-mobile-bar) 0;transform:none;width:100%;max-width:none;height:var(--hud-sheet-height,33.333dvh);max-height:none;padding:0 12px 12px;border-radius:14px 14px 0 0;scroll-padding-top:84px}
+ body.hud-layout #app .hud-sheet-grip{display:flex;position:sticky;top:0;z-index:5;align-items:center;justify-content:center;flex-direction:column;gap:2px;height:32px;min-height:32px;background:white;cursor:ns-resize;touch-action:none;user-select:none}
+ body.hud-layout #app .hud-sheet-grip>span{width:40px;height:4px;border-radius:4px;background:#89999f}
+ body.hud-layout #app .hud-sheet-grip small{font-size:10px;line-height:14px}
+ body.hud-layout #app .hud-sheet-grip:focus-visible{outline:2px solid #185fa5;outline-offset:-2px}
+ body.hud-layout #app :is(.workspace-heading,.hud-context-heading){position:sticky;top:32px;background:white;z-index:4;padding:6px 0}
+ body.hud-layout #app #hud-info-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:5px;touch-action:pan-x;overscroll-behavior-x:contain;scrollbar-width:thin}
+ body.hud-layout #app #hud-info-tabs button{flex:0 0 auto;white-space:nowrap;padding:6px 9px}
+ body.hud-layout #app #information-toolbar .information-shortcuts{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:3px 0 6px;touch-action:pan-x;overscroll-behavior-x:contain;scrollbar-width:thin}
+ body.hud-layout #app #workspace-drawer #information-toolbar .information-shortcuts button{flex:0 0 auto;white-space:nowrap}
+ body.hud-layout #app #hud-camera-controls{right:8px;bottom:calc(var(--hud-mobile-bar) + var(--hud-visible-sheet) + 8px)}
+ body.hud-layout #app #hud-camera-controls button{width:52px;min-height:34px;flex-direction:row;gap:3px}
+ body.hud-layout #app #hud-notices{max-width:calc(100vw - 16px);max-height:max(0px,calc(100dvh - var(--hud-top) - var(--hud-mobile-bar) - var(--hud-visible-sheet) - 94px))}
+ body.hud-layout #app #hud-tool-tip{max-width:calc(100vw - 16px)}
+ body.hud-layout #app footer{display:none}
+}
+
+/* A single rail highlight, independent of legacy tool classes and keyboard focus. */
+body.hud-layout #app #hud-tools button[aria-pressed="false"]{box-shadow:none;border-color:transparent;background:white;color:var(--tool-color)}
+body.hud-layout #app #hud-tools button[aria-pressed="true"]{box-shadow:none;background:var(--tool-color);color:white}
+body.hud-layout #app #hud-tools :is([data-hud-group="build-menu"],[data-hud-group="infra-menu"]){display:none}
+body.hud-layout #app #hud-compact-options{padding:5px 0 9px}
+body.hud-layout #app #hud-compact-options button{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:7px 10px;background:#f2f5f6;border:1px solid var(--hud-line)}
+.hud-overflow{--fade-left:0px;--fade-right:0px;mask-image:linear-gradient(to right,transparent,#000 var(--fade-left),#000 calc(100% - var(--fade-right)),transparent)}
+.hud-overflow-left{--fade-left:18px}.hud-overflow-right{--fade-right:18px}
+body.hud-layout #app :is(#guide-content,.request) button svg{width:18px;height:18px;vertical-align:middle;flex-shrink:0}
+body.hud-layout #app .request button{display:inline-flex;align-items:center;gap:5px}
+@media(max-width:700px){
+ body.hud-layout{--hud-top:122px}
+ body.hud-layout #app #hud-topbar{height:104px;grid-template-rows:32px 44px}
+ body.hud-layout #app #hud-topbar #playback button,body.hud-layout #app #hud-topbar #hud-header-actions button{width:44px!important;height:44px;min-width:44px;min-height:44px;padding:7px}
+ body.hud-layout #app #hud-topbar #playback{gap:4px!important}
+ body.hud-layout #app #hud-topbar #playback>div{gap:2px}
+}
+@media(max-width:420px){
+ body.hud-layout{--hud-top:166px}
+ body.hud-layout #app #hud-topbar{height:148px;grid-template-rows:28px 44px 44px}
+ body.hud-layout #app #hud-topbar #playback{grid-column:1/-1;grid-row:2;justify-content:space-between}
+ body.hud-layout #app #hud-topbar #hud-header-actions{grid-column:1/-1;grid-row:3;justify-content:flex-end}
+}
+@media(max-width:480px){
+ body.hud-layout #app #hud-tools button{flex:1 0 44px;width:auto;min-width:44px}
+ body.hud-layout #app #hud-tools :is([data-hud-group="residential"],[data-hud-group="commercial"],[data-hud-group="industrial"],[data-hud-group="power"],[data-hud-group="water"],[data-hud-group="transit"]){display:none}
+ body.hud-layout #app #hud-tools :is([data-hud-group="build-menu"],[data-hud-group="infra-menu"]){display:flex}
+}
+@media(max-width:480px){body.hud-layout #app #hud-tools{gap:2px;padding-left:4px;padding-right:4px}body.hud-layout #app #hud-tools button{padding-left:0;padding-right:0}body.hud-layout #app #hud-tools button span{white-space:nowrap}}
+/* Keep camera clearance correct even before resize event handlers run. */
+@media(max-width:700px){body.hud-layout:has(#hud-context:not([hidden]),#workspace-drawer:not([hidden])){--hud-visible-sheet:var(--hud-sheet-height,33.333dvh)}}
+
+/* Final layout adjustments: compact playback, scroll clearance, local warnings. */
+body.hud-layout #app #hud-speed-cycle{display:none}
+body.hud-layout #app #hud-notices #guide-panel[data-funds-negative="true"]{display:block}
+body.hud-layout #app #guide-funds{font-weight:700;color:#a32d2d;margin:7px 0;line-height:1.6}
+body.hud-layout .city-map-badge .map-badge-alert{color:white;font-size:22px;line-height:24px;font-family:Arial,sans-serif;font-weight:900}
+@media(max-width:700px){
+ body.hud-layout{--hud-top:122px}
+ body.hud-layout #app #hud-topbar{height:104px;padding:7px 4px;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:32px 44px;gap:4px 2px}
+ body.hud-layout #app #hud-topbar #playback{grid-row:2;grid-column:1;justify-content:flex-start;gap:2px!important}
+ body.hud-layout #app #hud-topbar #hud-header-actions{grid-row:2;grid-column:2;justify-content:flex-end;gap:2px}
+ body.hud-layout #app #hud-topbar #playback time{font-size:11px;flex-shrink:0;letter-spacing:0}
+ body.hud-layout #app #hud-topbar #playback [data-speed]:not([data-speed="0"]){display:none}
+ body.hud-layout #app #hud-topbar #hud-speed-cycle{display:inline-block}
+ body.hud-layout #app #hud-tools button span{white-space:nowrap;word-break:keep-all;overflow-wrap:normal;font-size:12px!important;line-height:16px;letter-spacing:-.25px}
+ body.hud-layout #app :is(#hud-context,#workspace-drawer){overflow-y:auto;overflow-x:hidden;padding-bottom:calc(36px + env(safe-area-inset-bottom,0px));scroll-padding-bottom:40px}
+}
+@media(min-width:1000px){
+ body.hud-layout[data-workspace="info"] #app #workspace-drawer{inset:var(--hud-top) 12px 12px auto;transform:none;width:360px;max-width:360px;height:auto;max-height:none;overflow-y:auto}
+ body.hud-layout[data-workspace="info"] #app #hud-info-tabs{flex-wrap:wrap}
+ body.hud-layout[data-workspace="info"] #app #hud-info-tabs button{font-size:12px!important}
+ body.hud-layout[data-workspace="info"] #app #hud-notices{right:384px;width:260px;max-width:calc(100vw - 490px);max-height:calc(100dvh - var(--hud-top) - 116px)}
+ body.hud-layout[data-workspace="info"] #app #hud-camera-controls{right:384px;bottom:32px}
+}
+@media(min-width:1000px){body.hud-layout[data-workspace="info"] #app footer{right:384px}}

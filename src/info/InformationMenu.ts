@@ -1,14 +1,14 @@
 import type {City} from '../simulation/City';import {INFO_MODES,citizenRequests,type InfoMode} from './CityInformation';
 const icon=(path:string)=>'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+path+'"/></svg>';
 export const INFO_GROUPS=[
- {id:'living',label:'住民・暮らし',tabs:['residents','happiness','requests']},
- {id:'infrastructure',label:'都市・インフラ',tabs:['demand','power','water','sewage','network','medical','education','fire','police']},
+ {id:'living',label:'暮らし',tabs:['residents','happiness','requests']},
+ {id:'infrastructure',label:'インフラ',tabs:['demand','power','water','sewage','network','medical','education','fire','police']},
  {id:'environment',label:'環境',tabs:['environment','air','noise']},
  {id:'traffic',label:'交通',tabs:['traffic','transit']},
 ] as const;
 export function informationGroup(tab:string|null){return INFO_GROUPS.find(g=>(g.tabs as readonly string[]).includes(tab??''))?.id??'living';}
 export const INFO_TABS=[
- {id:'residents',label:'住民・世帯',icon:icon('M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21v-4c0-6 12-6 12 0v4m0-7c4-1 8 1 8 4v3')},
+ {id:'residents',label:'世帯',icon:icon('M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21v-4c0-6 12-6 12 0v4m0-7c4-1 8 1 8 4v3')},
  {id:'happiness',label:'幸福度',icon:icon('M12 21S3 15 3 9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12-9 12Z')},
  {id:'water',label:'水道',icon:icon('M12 2 5 12a8 8 0 1 0 14 0L12 2ZM8 15c0 3 2 4 4 4')},
  {id:'sewage',label:'下水・汚水',icon:icon('M4 5h10v6h6M7 2v6m5 7 3 3 3-3M3 21c3-3 5 3 8 0s5 3 10 0')},
@@ -31,7 +31,8 @@ export interface MenuState {tab:InfoTab|'other'|null;mode:InfoMode}
 export const closedMenu=():MenuState=>({tab:null,mode:'normal'});
 export function modeMenu(mode:InfoMode):MenuState {if(mode==='normal')return closedMenu();return {tab:INFO_TABS.some(t=>t.id===mode)?mode as InfoTab:'other',mode};}
 export function toggleMenu(state:MenuState,tab:InfoTab):MenuState {return state.tab===tab?closedMenu():{tab,mode:tab==='requests'||tab==='residents'?'normal':tab};}
-export const INFO_BAR_HTML='<section id="information-toolbar" aria-label="都市情報ビュー"><div class="information-groups" role="toolbar" aria-label="情報の分類">'+INFO_GROUPS.map(g=>'<button type="button" data-info-group="'+g.id+'" aria-controls="information-subviews" aria-pressed="false">'+g.label+'</button>').join('')+'</div><div id="information-subviews" role="toolbar" aria-label="分類内の情報">'+INFO_TABS.map(t=>'<button type="button" data-info-tab="'+t.id+'" aria-label="'+t.label+'" aria-controls="information-panel" aria-pressed="false" aria-expanded="false">'+t.icon+'<span class="info-icon-label">'+t.label+'</span>'+(t.id==='requests'?'<span id="info-request-badge" class="info-count">0</span>':'')+'</button>').join('')+'</div><select id="info-other" hidden aria-label="情報を直接選択"><option value="">選択</option>'+Object.entries(INFO_MODES).filter(([k])=>k!=='normal').map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select></section>';
+const DIRECT_TABS=['residents','happiness','requests'];
+export const INFO_BAR_HTML='<section id="information-toolbar" aria-label="都市情報ビュー"><div class="information-shortcuts" role="toolbar" aria-label="情報の分類">'+INFO_GROUPS.map(g=>'<button type="button" data-info-group="'+g.id+'" aria-controls="information-panel" aria-pressed="false">'+g.label+'</button>').join('')+INFO_TABS.filter(t=>DIRECT_TABS.includes(t.id)).map(t=>'<button type="button" data-info-tab="'+t.id+'" aria-controls="information-panel" aria-pressed="false" aria-expanded="false">'+t.label+(t.id==='requests'?'<span id="info-request-badge" class="info-count">0</span>':'')+'</button>').join('')+'</div><label id="info-detail-label" hidden>詳細表示 <select id="info-detail-view" aria-label="分類内の詳細表示"></select></label><select id="info-other" hidden aria-label="情報を直接選択"><option value="">選択</option>'+Object.entries(INFO_MODES).filter(([k])=>k!=='normal').map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select></section>';
 const num=(v:number)=>v.toLocaleString('ja-JP',{maximumFractionDigits:1}),pct=(v:number)=>Math.round(v*100)+'%';
 /** Presentation of existing results only. No policy, save or simulation mutations. */
 export function compactInformation(c:City,mode:InfoMode,requestsView=false){
@@ -49,21 +50,26 @@ export function compactInformation(c:City,mode:InfoMode,requestsView=false){
 }
 export class InformationMenu {
  state:MenuState=closedMenu();
+ private selectedGroup:string|null=null;
  constructor(private changed:(mode:InfoMode)=>void){
   const bar=document.getElementById('information-toolbar')!,panel=document.getElementById('information-panel')!;
-  bar.addEventListener('click',e=>{const group=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-group]');if(group){const g=INFO_GROUPS.find(g=>g.id===group.dataset.infoGroup)!;const tab=g.tabs[0] as InfoTab;this.commit({tab,mode:tab==='residents'?'normal':tab as InfoMode});return;}const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-tab]');if(b)this.commit(toggleMenu(this.state,b.dataset.infoTab as InfoTab));});
+  bar.addEventListener('click',e=>{const group=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-group]');if(group){const g=INFO_GROUPS.find(g=>g.id===group.dataset.infoGroup)!;const tab=g.tabs[0] as InfoTab;this.selectedGroup=g.id;this.commit({tab,mode:tab==='residents'?'normal':tab as InfoMode});return;}const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-tab]');if(b){const tab=b.dataset.infoTab as InfoTab;this.selectedGroup=null;this.commit({tab,mode:tab==='residents'||tab==='requests'?'normal':tab});}});
+  (document.getElementById('info-detail-view') as HTMLSelectElement).onchange=e=>{const tab=(e.target as HTMLSelectElement).value as InfoTab;this.commit({tab,mode:tab as InfoMode});};
   (document.getElementById('info-other') as HTMLSelectElement).onchange=e=>this.openMode((e.target as HTMLSelectElement).value as InfoMode||'normal');
   document.getElementById('info-close')!.onclick=()=>{this.close(true);document.dispatchEvent(new Event('city-info-dismiss'));};
   for(const area of [bar,panel])area.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();this.close(true);document.dispatchEvent(new Event('city-info-dismiss'));}});
-  bar.addEventListener('keydown',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-tab]');if(!b||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const buttons=Array.from(bar.querySelectorAll<HTMLButtonElement>('[data-info-tab]')).filter(b=>!b.hidden),index=buttons.indexOf(b),next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(index+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;buttons.forEach((v,i)=>v.tabIndex=i===next?0:-1);buttons[next].focus();});this.paint();
+  bar.addEventListener('keydown',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-group],[data-info-tab]');if(!b||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const buttons=Array.from(bar.querySelectorAll<HTMLButtonElement>('[data-info-group],[data-info-tab]')).filter(b=>!b.hidden),index=buttons.indexOf(b),next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(index+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;buttons.forEach((v,i)=>v.tabIndex=i===next?0:-1);buttons[next].focus();});this.paint();
  }
  private commit(next:MenuState){this.state=next;this.paint();this.changed(next.mode);}
- openMode(mode:InfoMode){this.commit(modeMenu(mode));}
- synchronize(mode:InfoMode){if(mode!==this.state.mode){this.state=modeMenu(mode);this.paint();}}
- close(focus=false){const previous=this.state.tab;this.commit(closedMenu());if(focus&&previous){const b=previous==='other'?document.getElementById('info-other'):document.querySelector<HTMLElement>('[data-info-tab="'+previous+'"]');b?.focus();}}
+ openMode(mode:InfoMode){this.selectedGroup=DIRECT_TABS.includes(mode)?null:informationGroup(mode);this.commit(modeMenu(mode));}
+ synchronize(mode:InfoMode){if(mode!==this.state.mode){this.selectedGroup=DIRECT_TABS.includes(mode)?null:informationGroup(mode);this.state=modeMenu(mode);this.paint();}}
+ close(focus=false){const previous=this.state.tab;this.commit(closedMenu());if(focus&&previous){const b=previous==='other'?document.getElementById('info-other'):document.querySelector<HTMLElement>('[data-info-tab="'+previous+'"]');(b??document.querySelector<HTMLElement>('[data-info-group="'+informationGroup(previous)+'"]'))?.focus();}}
  private paint(){const panel=document.getElementById('information-panel')!,isOpen=this.state.tab!==null,requests=this.state.tab==='requests',residents=this.state.tab==='residents';document.getElementById('resident-panel')!.hidden=!residents;panel.hidden=!isOpen;panel.dataset.view=this.state.tab??'closed';document.body.classList.toggle('info-open',isOpen);if(isOpen)(document.getElementById('management-panel') as HTMLDetailsElement).open=false;
-  const group=informationGroup(this.state.tab);document.querySelectorAll<HTMLButtonElement>('[data-info-group]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.infoGroup===group)));document.querySelectorAll<HTMLButtonElement>('[data-info-tab]').forEach(b=>b.hidden=informationGroup(b.dataset.infoTab??null)!==group);
-  const selected=INFO_TABS.findIndex(t=>t.id===this.state.tab);document.querySelectorAll<HTMLButtonElement>('[data-info-tab]').forEach((b,i)=>{const active=b.dataset.infoTab===this.state.tab;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-expanded',String(active));b.tabIndex=active?0:b.hidden?-1:0;});
+  document.querySelectorAll<HTMLButtonElement>('[data-info-group]').forEach(b=>b.setAttribute('aria-pressed',String(isOpen&&b.dataset.infoGroup===this.selectedGroup)));
+  document.querySelectorAll<HTMLButtonElement>('[data-info-tab]').forEach(b=>{const active=isOpen&&this.selectedGroup===null&&b.dataset.infoTab===this.state.tab;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-expanded',String(active));b.tabIndex=0;});
+  const detail=document.getElementById('info-detail-view') as HTMLSelectElement,group=INFO_GROUPS.find(g=>g.id===this.selectedGroup),showDetail=isOpen&&!!group&&group.id!=='living';document.getElementById('info-detail-label')!.hidden=!showDetail;
+  if(showDetail){detail.replaceChildren(...INFO_TABS.filter(t=>(group.tabs as readonly string[]).includes(t.id)).map(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.label;return o;}));detail.value=this.state.tab??'';}
+
   (document.getElementById('overlay') as HTMLSelectElement).value=this.state.mode;const other=document.getElementById('info-other') as HTMLSelectElement;other.value=this.state.tab==='other'?this.state.mode:'';other.classList.toggle('active',this.state.tab==='other');document.getElementById('info-core')!.hidden=requests||residents;document.getElementById('info-details')!.hidden=requests||residents;const list=document.getElementById('citizen-requests') as HTMLDetailsElement;list.hidden=!requests;if(requests)list.open=true;
  }
 }

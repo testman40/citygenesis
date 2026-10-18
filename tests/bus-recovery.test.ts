@@ -1,3 +1,4 @@
+import {roadLanes} from '../src/traffic/RoadLanes';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {City} from '../src/simulation/City';
@@ -18,7 +19,7 @@ function fixture(size=64){
   const bus=[...ops.buses.values()][0];
   return {city,ops,bus,route,m,cell};
 }
-function pose(city:City,b:BusRun){const j=buildLaneJourney(b.path,city.size,city.transit.operations.roadMinutes,new Map(b.stops.map(s=>[s.index,city.transit.config.dwellMinutes])),id=>city.network.adjacent(id).length>=3);return laneVehicle(j.loop,b.phase,b.id,'bus',b.clock);}
+function pose(city:City,b:BusRun){const j=buildLaneJourney(b.path,city.size,city.transit.operations.roadMinutes,new Map(b.stops.map(s=>[s.index,city.transit.config.dwellMinutes])),id=>city.network.adjacent(id).length>=3,roadLanes(city.network));return laneVehicle(j.loop,b.phase,b.id,'bus',b.clock);}
 function assertUnchanged(f:ReturnType<typeof fixture>,action:()=>void){const before=f.city.snapshot();assert.throws(action);assert.deepEqual(f.city.snapshot(),before);}
 
 for(const size of [64,128,256]){
@@ -151,7 +152,7 @@ test('diagnostics distinguish depot, stop and unknown route gaps without guessin
 
 test('an unmappable bus position identifies its original road and preserves the saved run',()=>{
   const f=fixture(),{m,cell}=f,road=(m-4)*f.city.size+m;
-  const journey=buildLaneJourney(f.bus.path,f.city.size,f.ops.roadMinutes,new Map(f.bus.stops.map(s=>[s.index,f.city.transit.config.dwellMinutes])),id=>f.city.network.adjacent(id).length>=3);
+  const journey=buildLaneJourney(f.bus.path,f.city.size,f.ops.roadMinutes,new Map(f.bus.stops.map(s=>[s.index,f.city.transit.config.dwellMinutes])),id=>f.city.network.adjacent(id).length>=3,roadLanes(f.city.network));
   const piece=journey.loop.pieces.find(p=>p.curve.road===road)!;assert.ok(piece);
   f.bus.phase=(piece.start+piece.end)/2;
   f.bus.nextEvent=f.bus.stops.filter(s=>journey.arrivals.get(s.index)!<=f.bus.phase).length;

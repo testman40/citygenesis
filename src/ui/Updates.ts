@@ -1,7 +1,14 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>公共交通・道路ツール改善版</strong></p>
+<p class="updates-current">表示中の版：<strong>道路と移動手段の拡張版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-18：道路と移動手段を拡張</h3>
+<ul><li><strong>歩道と横断歩道</strong> — 徒歩の住民追跡は歩道を通り、横断歩道では青を待ちます。高速道路に人は入りません。</li>
+<li><strong>道路を使い分け</strong> — 生活道路、2車線・4車線（中央分離帯あり・なし）、高速道路、自転車道を建設メニューから選択。速度・容量・費用が異なります。</li>
+<li><strong>車線と信号</strong> — 4車線は進行方向に応じて車線を選び、交差点は信号と出口の空きを見て通過。共有1車線は対向車に道を譲ります。</li>
+<li><strong>バスの待避スペース</strong> — 停留所編集で道路脇の空き地3マスに追加できます（200）。停車中のバスを通過車線の外へ寄せます。</li>
+<li><strong>自転車通勤</strong> — 通行可能な経路がある中距離の通勤で、一部の住民が自転車を選びます。自転車も表示・追跡できます。</li></ul>
+<p class="workspace-tip">道路は従来の1マス内に収める表現です。高速道路・自転車道は沿道の建物へ接続せず、高速道路の平面交差点は作れません。高速道路は端から一般道路へつないでください。保存バージョン4/5に任意項目を追加し、従来の都市も読込可能です。</p></article>
 <article class="update-entry"><h3>2026-10-18：公共交通と道路の操作を整理</h3>
 <ul><li><strong>道路をアイコンで選択</strong> — 直線・曲線・正方形・長方形を選べます。曲線はマス目に沿って建設します。</li>
 <li><strong>公共交通のカテゴリ</strong> — バス・電車・地下鉄・船の入口を追加。バスには車庫・停車場所・専用道路をまとめました。電車・地下鉄・船の運行は今後の実装です。</li>

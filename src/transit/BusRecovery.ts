@@ -1,14 +1,14 @@
-import {buildLaneJourney, laneVehicle} from '../traffic/LanePath';
+import {buildLaneJourney, laneVehicle, type LaneStyler} from '../traffic/LanePath';
 import type {BusRun, RoutePlan} from './BusOperations';
 import {recoveryError} from './RecoveryDiagnostic';
 
 /** Prepare only. Never mutates the saved run or consumes stop/passenger events. */
-export function prepareBusRecovery(bus:BusRun, plan:RoutePlan, size:number, minutes:number, dwell:number, junction:(road:number)=>boolean):BusRun {
+export function prepareBusRecovery(bus:BusRun, plan:RoutePlan, size:number, minutes:number, dwell:number, junction:(road:number)=>boolean,styler?:LaneStyler):BusRun {
   if(bus.state!=='error'&&bus.state!=='paused')throw recoveryError('run-state','安全再経路化は異常停止・運休中の便だけに行えます');
   if(!plan.valid)throw recoveryError('route-path',plan.errors.join(' / ')||'復旧経路がありません');
   if(bus.stops.length!==plan.stops.length||bus.stops.some((s,i)=>s.id!==plan.stops[i].id||s.lap!==plan.stops[i].lap||!!s.first!==!!plan.stops[i].first))throw recoveryError('itinerary','停留所順序が変わっています。元の便を維持できないため復旧を保留します');
   if(!Number.isFinite(bus.phase)||bus.phase<0||bus.nextEvent<0||bus.nextEvent>bus.stops.length)throw recoveryError('progress','便の進捗が不正です');
-  const journey=(path:number[],stops:BusRun['stops'])=>buildLaneJourney(path,size,minutes,new Map(stops.map(s=>[s.index,dwell])),junction);
+  const journey=(path:number[],stops:BusRun['stops'])=>buildLaneJourney(path,size,minutes,new Map(stops.map(s=>[s.index,dwell])),junction,styler);
   const old=journey(bus.path,bus.stops),next=journey(plan.path,plan.stops);
   if(bus.phase>=old.loop.duration)throw recoveryError('progress','便の現在位置を確定できません');
   const pose=laneVehicle(old.loop,bus.phase,bus.id,'bus',bus.clock);

@@ -1,3 +1,4 @@
+import {roadLanes} from '../traffic/RoadLanes';
 import {Pathfinder} from '../traffic/Pathfinder';
 import {buildLaneJourney,laneVehicle,type LaneLoop} from '../traffic/LanePath';
 import {VehicleFleet} from '../traffic/VehicleMotion';
@@ -25,6 +26,7 @@ export class BusOperations {
  get active(){return !!(this.depots.size||this.routes.size||this.transit.graph.directions.size);}
  operating(id:number){return this.routes.get(id)?.enabled||[...this.buses.values()].some(b=>b.route===id&&b.state!=='garage'&&b.state!=='error'&&b.state!=='paused');}
  serviceLaps(id:number){return [...this.buses.values()].find(b=>b.route===id&&b.state!=='garage')?.tripLaps??this.routes.get(id)?.laps??3;}
+ busyRoads(){return this.fleet.busyRoads();}
  presentation(){const poses=this.fleet.presentation((performance.now()-this.presentationAt)/50);poses.buses=poses.buses.filter(p=>this.buses.get(p.id!)?.state!=='garage');return poses;}
  get maintenance(){const t=this.transit;return [...this.depots.values()].reduce((n,d)=>n+d.owned*BUS_INFRA.busOwnership+BUS_INFRA.depotMaintenance,0)*t.funding;}
  stopInUse(id:number){return [...this.buses.values()].some(b=>b.state!=='garage'&&b.stops.some(s=>s.id===id));}
@@ -55,7 +57,7 @@ export class BusOperations {
   const result={valid:errors.length===0,errors,segments,path,stops,returnIndex};if(this.plans.size>=64)this.plans.delete(this.plans.keys().next().value!);this.plans.set(cacheKey,result);return result;
  }
  validate(id:number){const r=this.transit.routes.get(id),s=this.routes.get(id);return r&&s?this.plan(r,s):{valid:false,errors:['車庫付き循環路線ではありません'],segments:[],path:[],stops:[],returnIndex:0};}
- private journey(b:BusRun){let hit=this.paths.get(b.id);if(!hit){const key=b.path.join(',')+':'+b.stops.map(s=>s.index).join(',')+':'+this.roadMinutes;hit=this.sharedJourneys.get(key);if(!hit){const waits=new Map(b.stops.map(s=>[s.index,this.transit.config.dwellMinutes]));hit=buildLaneJourney(b.path,this.transit.graph.size,this.roadMinutes,waits,id=>this.transit.graph.adjacent(id).length>=3);if(this.sharedJourneys.size>=16)this.sharedJourneys.delete(this.sharedJourneys.keys().next().value!);this.sharedJourneys.set(key,hit);}this.paths.set(b.id,hit);}return hit;}
+ private journey(b:BusRun){let hit=this.paths.get(b.id);if(!hit){const key=b.path.join(',')+':'+b.stops.map(s=>s.index).join(',')+':'+this.roadMinutes;hit=this.sharedJourneys.get(key);if(!hit){const waits=new Map(b.stops.map(s=>[s.index,this.transit.config.dwellMinutes]));hit=buildLaneJourney(b.path,this.transit.graph.size,this.roadMinutes,waits,id=>this.transit.graph.adjacent(id).length>=3,roadLanes(this.transit.graph,0,new Set([...this.transit.stops.values()].filter(s=>s.bay).map(s=>s.road))));if(this.sharedJourneys.size>=16)this.sharedJourneys.delete(this.sharedJourneys.keys().next().value!);this.sharedJourneys.set(key,hit);}this.paths.set(b.id,hit);}return hit;}
  start(id:number){const route=this.transit.routes.get(id),s=this.routes.get(id);if(!route||!s)throw Error('路線がありません');const d=this.depots.get(s.depot);if(!d||this.allocated(d.id,id)+route.fleet>d.owned)throw Error('車庫に利用可能なバスがありません');const plan=this.validate(id);if(!plan.valid)throw Error(plan.errors.join(' / '));const running=[...this.buses.values()].filter(b=>b.route===id&&b.state!=='garage');if(running.length){if(running.every(b=>(b.state==='error'||b.state==='paused')&&this.intact(b))){for(const b of running){b.state='travel';b.error='';}s.enabled=true;this.fleet.reset();this.changed();return;}throw Error('この路線には運行中・異常停止中のバスがあります。道路を復旧して再開してください');}
   for(let v=0;v<route.fleet;v++){const key='managed:'+id+':'+v;this.paths.delete(key);this.buses.set(key,{id:key,route:id,depot:d.id,state:'departing',lap:0,tripLaps:s.laps,phase:0,clock:0,path:[...plan.path],stops:structuredClone(plan.stops),returnIndex:plan.returnIndex,nextEvent:0,onboard:0,passengers:[],boarded:0,alighted:0,error:'',delay:v*1.5});}s.enabled=true;this.fleet.reset();this.changed();}
  stop(id:number){const s=this.routes.get(id);if(s){s.enabled=false;for(const b of this.buses.values())if(b.route===id&&b.state!=='garage'&&b.state!=='error')b.state='paused';this.changed();}}
@@ -66,7 +68,7 @@ export class BusOperations {
   if(!route||!settings||settings.depot!==bus.depot)throw recoveryError('missing-route','便の路線・所属車庫を確認できません');
   const graph=this.transit.graph,plan=this.plan(route,settings,bus.tripLaps);
   if(!plan.valid)throw new RecoveryError(plan.errors.join(' / ')||'復旧経路がありません',invalidPlanDiagnostic(this.transit,route,this.depots.get(settings.depot)));
-  const candidate=prepareBusRecovery(bus,plan,graph.size,this.roadMinutes,this.transit.config.dwellMinutes,road=>graph.adjacent(road).length>=3);
+  const candidate=prepareBusRecovery(bus,plan,graph.size,this.roadMinutes,this.transit.config.dwellMinutes,road=>graph.adjacent(road).length>=3,roadLanes(graph,0,new Set([...this.transit.stops.values()].filter(s=>s.bay).map(s=>s.road))));
   if(!this.intact(candidate))throw recoveryError('route-path','復旧経路の道路・停留所が無効です');
   const state=this.snapshot();state.buses=state.buses.map(b=>b.id===id?candidate:b);
   try{validateInfrastructure(state,graph.size,new Set(this.transit.routes.keys()),this.transit.config.seats);}
@@ -94,16 +96,16 @@ export class BusOperations {
   const settings=this.routes.get(bus.route);if(!settings||!this.transit.routes.has(bus.route)||settings.depot!==bus.depot)throw Error('便の路線・所属車庫がありません');
   const graph=this.transit.graph;
   validateInfrastructure(this.snapshot(),graph.size,new Set(this.transit.routes.keys()),this.transit.config.seats);
-  prepareBusRecovery(bus,{valid:true,errors:[],segments:[],path:bus.path,stops:bus.stops,returnIndex:bus.returnIndex},graph.size,this.roadMinutes,this.transit.config.dwellMinutes,road=>graph.adjacent(road).length>=3);
+  prepareBusRecovery(bus,{valid:true,errors:[],segments:[],path:bus.path,stops:bus.stops,returnIndex:bus.returnIndex},graph.size,this.roadMinutes,this.transit.config.dwellMinutes,road=>graph.adjacent(road).length>=3,roadLanes(graph,0,new Set([...this.transit.stops.values()].filter(s=>s.bay).map(s=>s.road))));
   bus.state='travel';bus.error='';settings.enabled=true;this.fleet.reset();this.changed();
  }
  removeRoute(id:number){if([...this.buses.values()].some(b=>b.route===id&&b.state!=='garage'))throw Error('帰庫が完了してから路線を削除してください');this.routes.delete(id);for(const [key,b] of this.buses)if(b.route===id){this.paths.delete(key);this.buses.delete(key);}this.changed();}
  private intact(b:BusRun){const g=this.transit.graph;for(let i=1;i<b.path.length-2;i++)if(!g.canTravel(b.path[i],b.path[i+1]))return false;return this.depots.has(b.depot)&&g.adjacent(b.depot).includes(b.path[1])&&g.adjacent(b.depot).includes(b.path[b.path.length-2])&&b.stops.every(s=>this.transit.stops.has(s.id));}
  /** Fixed simulation time, capped display fleet; managed trajectories share the existing collision controller with cars. */
- advance(minutes:number,cars:VehiclePose[]=[],legacy:VehiclePose[]=[]){if(!Number.isFinite(minutes)||minutes<0)throw Error('運行時間が不正です');if(!this.routes.size)return;const g=this.transit.graph;if(this.revision!==g.revision){this.revision=g.revision;for(const b of this.buses.values())if(b.state!=='garage'&&!this.intact(b)){b.state='error';b.error='道路切断・規制変更・施設撤去：安全停止中';const s=this.routes.get(b.route);if(s)s.enabled=false;this.changed();}this.fleet.reset();}
+ advance(minutes:number,cars:VehiclePose[]=[],legacy:VehiclePose[]=[]){if(!Number.isFinite(minutes)||minutes<0)throw Error('運行時間が不正です');if(!this.routes.size)return;const g=this.transit.graph;if(this.revision!==g.revision){this.revision=g.revision;this.paths.clear();this.sharedJourneys.clear();for(const b of this.buses.values())if(b.state!=='garage'&&!this.intact(b)){b.state='error';b.error='道路切断・規制変更・施設撤去：安全停止中';const s=this.routes.get(b.route);if(s)s.enabled=false;this.changed();}this.fleet.reset();}
   this.presentationAt=performance.now();const targets:VehiclePose[]=[];
   for(const b of this.buses.values()){if(b.state==='garage')continue;if(b.delay>0){if(b.state!=='paused')b.delay=Math.max(0,b.delay-minutes);continue;}const journey=this.journey(b);const location=laneVehicle(journey.loop,b.phase,b.id,'bus',b.clock),pose=journey.loop.pieces[location.piece??0],slow=pose.from===pose.to?1:Math.max(1,this.multiplier(pose.curve.road));b.clock+=b.state==='error'||b.state==='paused'?0:minutes/slow;targets.push(laneVehicle(journey.loop,b.phase,b.id,'bus',b.clock));}
-  const shown=new Set(targets.slice(0,24).map(p=>p.id));const visible=this.fleet.update(cars,[...targets,...legacy].slice(0,24));this.visible=visible;
+  const shown=new Set(targets.slice(0,24).map(p=>p.id));const visible=this.fleet.update(cars,[...targets,...legacy].slice(0,24),this.transit.graph.signalTime,this.transit.graph.pedestrianBusy);this.visible=visible;
   for(const b of this.buses.values()){if(b.state==='garage'||b.state==='error'||b.state==='paused'||b.delay>0)continue;const j=this.journey(b),sample=this.fleet.progress(b.id);if(sample===undefined&&shown.has(b.id))continue;b.phase=sample??Math.min(j.loop.duration,b.phase+minutes);
    while(b.nextEvent<b.stops.length&&b.phase>=j.arrivals.get(b.stops[b.nextEvent].index)!){const event=b.stops[b.nextEvent++];b.lap=event.lap;const manifest=b.passengers??[];b.alighted+=manifest.filter(([stop])=>stop===event.id).reduce((n,[,count])=>n+count,0);b.passengers=manifest.filter(([stop])=>stop!==event.id);b.onboard=b.passengers.reduce((n,[,count])=>n+count,0);if(event.lap<b.tripLaps&&this.transit.stops.has(event.id)){for(const flow of this.transit.passengerFlows.values()){if(flow.route!==b.route||flow.from!==event.id||!b.stops.slice(b.nextEvent).some(s=>s.id===flow.to))continue;const count=Math.min(this.transit.config.seats-b.onboard,Math.floor(flow.count/Math.max(1,(this.transit.routes.get(b.route)?.fleet??1)*this.transit.config.tripsPerMonth)));if(count>0){const existing=b.passengers.find(([id])=>id===flow.to);if(existing)existing[1]+=count;else b.passengers.push([flow.to,count]);b.onboard+=count;b.boarded+=count;}}}}
    const event=b.stops[b.nextEvent-1],arrival=event?j.arrivals.get(event.index)!:-Infinity;

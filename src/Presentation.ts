@@ -1,6 +1,6 @@
 import type {Tool} from './simulation/City';
 // UI only: never mutates the city, save data, or input handling.
-const paths:Record<string,string>={
+const paths:Record<string,string>={bike:'M5 20a4 4 0 1 0 0-8 4 4 0 1 0 0 8ZM19 20a4 4 0 1 0 0-8 4 4 0 1 0 0 8ZM5 16l5-8 5 8H5Zm5-8h6l3 8M8 5h4m3-2h3v5',crossing:'M2 4h20M2 20h20M5 8v8m4-8v8m4-8v8m4-8v8m4-8v8',
 'bus-road':'M5 2 2 22M19 2l3 20M8 7h8v10H8V7Zm0 5h8m-6 5v3m4-3v3',bus:'M5 4h14v14H5V4Zm0 7h14M8 18v3m8-3v3M8 15h1m6 0h1',train:'M6 2h12v16H6V2Zm0 9h12M8 18l-3 4m11-4 3 4M9 15h1m4 0h1',subway:'M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0ZM7 16V8l5 6 5-6v8',ship:'M3 13l9-3 9 3-3 6H6l-3-6ZM8 11V5h8v6M12 5V2M2 22c3-3 6 3 10 0s6 3 10 0',transit:'M3 3h10v14H3V3Zm0 7h10M5 17v4m6-4v4M16 5h5v12h-5M16 12h5m-2 5v4',
 'shape-line':'M3 19 21 5M3 15v4h4m10-14h4v4','shape-curve':'M3 20C3 4 21 20 21 4M17 4h4v4','shape-square':'M4 4h16v16H4V4Z','shape-rectangle':'M2 7h20v10H2V7Z',
 

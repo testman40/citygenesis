@@ -6,20 +6,20 @@ export interface StreetPerson {x:number;z:number;toX:number;toZ:number;seed:numb
 export function streetPeople(city:City,focus:{x:number;z:number},radius=18):StreetPerson[]{
  const people:StreetPerson[]=[],n=city.size;
  for(const stop of city.transit.stops.values()){
-  const p=stopPosition(stop.road,n,stop.heading??1);if(Math.hypot(p.x-focus.x,p.z-focus.z)>radius)continue;
+  if(!city.network.allows(stop.road,'walk'))continue;const p=stopPosition(stop.road,n,stop.heading??1,stop.bay);if(Math.hypot(p.x-focus.x,p.z-focus.z)>radius)continue;
   const count=Math.min(8,city.transit.operations.waiting(stop.id));
-  for(let i=0;i<count&&people.length<PEOPLE_LIMIT;i++){const dx=[0,1,0,-1][p.heading],dz=[-1,0,1,0][p.heading],x=p.x-dx*(i%4)*.14+dz*Math.floor(i/4)*.12,z=p.z-dz*(i%4)*.14-dx*Math.floor(i/4)*.12;people.push({x,z,toX:x,toZ:z,seed:stop.id*11+i,waiting:true});}
+  for(let i=0;i<count&&people.length<PEOPLE_LIMIT;i++){const dx=[0,1,0,-1][p.heading],dz=[-1,0,1,0][p.heading],x=p.x-dx*i*.065,z=p.z-dz*i*.065;people.push({x,z,toX:x,toZ:z,seed:stop.id*11+i,waiting:true});}
  }
  if(!city.population)return people;
  const candidates:{id:number;distance:number}[]=[];
  for(let z=Math.max(0,Math.floor(focus.z-radius));z<=Math.min(n-1,Math.ceil(focus.z+radius));z++)for(let x=Math.max(0,Math.floor(focus.x-radius));x<=Math.min(n-1,Math.ceil(focus.x+radius));x++){
   const tile=city.tile({x,z});if(!tile.level||!tile.networkConnected||!['residential','commercial'].includes(tile.zone??''))continue;
-  const road=city.network.adjacent(z*n+x).find(id=>city.network.isMain(id));if(road!==undefined)candidates.push({id:road,distance:Math.hypot(x-focus.x,z-focus.z)});
+  const road=city.network.adjacent(z*n+x).find(id=>city.network.isMain(id)&&city.network.allows(id,'walk')&&city.network.adjacent(id).length<3);if(road!==undefined)candidates.push({id:road,distance:Math.hypot(x-focus.x,z-focus.z)});
  }
  candidates.sort((a,b)=>a.distance-b.distance);const seen=new Set<number>();let walkers=0;
- for(const candidate of candidates){const id=candidate.id;if(seen.has(id))continue;seen.add(id);const next=city.network.adjacent(id).find(to=>!city.hydrology?.river.has(to));if(next===undefined||city.hydrology?.river.has(id))continue;
+ for(const candidate of candidates){const id=candidate.id;if(seen.has(id))continue;seen.add(id);const next=city.network.adjacent(id).find(to=>!city.hydrology?.river.has(to)&&city.network.allows(to,'walk')&&city.network.adjacent(to).length<3);if(next===undefined||city.hydrology?.river.has(id))continue;
   const x=id%n+.5,z=Math.floor(id/n)+.5,dx=next%n-id%n,dz=Math.floor(next/n)-Math.floor(id/n),side=id%2?1:-1;
-  for(let i=0;i<2&&walkers<64&&people.length<PEOPLE_LIMIT;i++,walkers++)people.push({x:x-dz*.39*side,z:z+dx*.39*side,toX:x+dx-dz*.39*side,toZ:z+dz+dx*.39*side,seed:id*3+i,waiting:false});
+  const curb=(road:number)=>{const bay=city.network.bayWalk.get(road);return bay!==undefined&&((bay===1&&dx*side<0)||(bay===3&&dx*side>0)||(bay===0&&-dz*side<0)||(bay===2&&-dz*side>0))?.86:.455;};const a=curb(id),b=curb(next);for(let i=0;i<2&&walkers<64&&people.length<PEOPLE_LIMIT;i++,walkers++)people.push({x:x-dz*a*side,z:z+dx*a*side,toX:x+dx-dz*b*side,toZ:z+dz+dx*b*side,seed:id*3+i,waiting:false});
  }
  return people;
 }

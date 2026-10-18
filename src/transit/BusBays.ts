@@ -1,0 +1,3 @@
+import type {City} from '../simulation/City';
+export function bayCells(road:number,size:number,heading:number){const dx=[0,1,0,-1][heading],dz=[-1,0,1,0][heading],x=road%size,z=Math.floor(road/size);return [-1,0,1].map(step=>({x:x+dz+dx*step,z:z-dx+dz*step}));}
+export function baySite(city:City,road:number,heading:number){const p=city.network.profile(road);if(p.lanes<2||!p.walk)return '待避スペースは2車線以上の一般道路・バス専用道路に設けてください';for(const c of bayCells(road,city.size,heading)){if(!city.contains(c))return '道路脇に3マスの空き地が必要です';const t=city.tile(c),id=c.z*city.size+c.x;if(t.road||t.zone||t.facility||city.hydrology?.river.has(id))return '待避スペースには道路脇3マスの空き地が必要です';const owner=city.network.bayCells.get(id);if(owner!==undefined&&owner!==road)return '別の停留所の待避スペースと重なっています';}return '';}

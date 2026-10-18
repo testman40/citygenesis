@@ -26,19 +26,19 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
    for(const side of [-.44,.44]){add('mass',px+(horizontal?0:side),.20,pz+(horizontal?side:0),horizontal?1:.045,.075,horizontal?.045:1,'#a7b9b8');add('detail',px+(horizontal?0:side),.10,pz+(horizontal?side:0),.04,.2,.04,'#81989a');}
   }
   if(t.road){
-   const id=z*city.size+x,load=city.traffic.congestion(id);
+   const id=z*city.size+x,roadProfile=city.network.profile(id),load=city.traffic.congestion(id);
    const response=overlay==='fire'||overlay==='police'?city.safety.responseAt(id,overlay):null;
    const civic=overlay==='medical'?city.wellness.roadCoverage(id,'medical'):overlay==='education'?city.wellness.roadCoverage(id,'elementary')*.6+city.wellness.roadCoverage(id,'highSchool')*.4:0;
    const sewer=overlay==='sewage'&&city.sanitation?(hydro?.treatmentAt(id).ratio??0):0;const color=overlay==='normal'?(city.network.busOnly.has(id)?'#386f72':ROAD_VISUAL.asphaltColor):INFO_STYLE[informationAt(city,owner,overlay).state].color;
-   add('surface',px,.025,pz,1,.045,1,'#d5d5c5');add('surface',px,.054,pz,access[1]||access[3]?1:ROAD_VISUAL.pavementWidth,.04,access[0]||access[2]?1:ROAD_VISUAL.pavementWidth,color);
+   add('surface',px,.025,pz,1,.045,1,'#d5d5c5');add('surface',px,.054,pz,access[1]||access[3]?1:roadProfile.width,.04,access[0]||access[2]?1:roadProfile.width,color);
    const direction=city.network.directions.get(id);if(direction!==undefined){const angle=[Math.PI,Math.PI/2,0,-Math.PI/2][direction];for(const side of [-1,1])mark('detail',px+Math.sin(angle)*.06+Math.cos(angle)*side*.06,.09,pz+Math.cos(angle)*.06-Math.sin(angle)*side*.06,.025,.012,.16,'#dce9cf',angle+side*.6);}
    for(let n=0;n<4;n++){if(!access[n])continue;
-    if(degree>=3){for(let stripe=-1;stripe<=1;stripe++)mark('detail',px+(n%2?(n===1?.37:-.37):stripe*.13),.079,pz+(n%2?stripe*.13:(n===0?-.37:.37)),n%2?.09:.065,.009,n%2?.065:.09,'#e9eadf');}
+    if((degree>=3||city.network.crossings.has(id))&&roadProfile.walk){for(let stripe=-1;stripe<=1;stripe++)mark('detail',px+(n%2?(n===1?.37:-.37):stripe*.13),.079,pz+(n%2?stripe*.13:(n===0?-.37:.37)),n%2?.09:.065,.009,n%2?.065:.09,'#e9eadf');}
     else if(degree===2&&((access[0]&&access[2])||(access[1]&&access[3])))mark('detail',px+(n%2?(n===1?.28:-.28):0),.079,pz+(n%2?0:(n===0?-.28:.28)),n%2?.16:ROAD_VISUAL.centerLineWidth,.009,n%2?ROAD_VISUAL.centerLineWidth:.16,ROAD_VISUAL.centerLineColor);
    }
    for(let n=0;n<4;n++)if(!access[n])add('surface',px+(n%2?(n===1?.47:-.47):0),.09,pz+(n%2?0:(n===0?-.47:.47)),n%2?.045:1,.07,n%2?1:.045,'#d9dcce');
    const decorStarted=profile?performance.now():0;
-   if(degree>=3){add('detail',x+.075,.36,z+.075,.025,.64,.025,'#55676b');add('detail',x+.10,.65,z+.075,.08,.17,.05,'#3f5155');add('detail',x+.105,.695,z+.105,.04,.035,.012,'#de806b');add('detail',x+.105,.61,z+.105,.04,.035,.012,'#9fc997');}
+   if(roadProfile.median&&degree<3&&!city.network.crossings.has(id)){const horizontal=access[1]||access[3];add('mass',px,.12,pz,horizontal?1:.055,.09,horizontal?.055:1,'#d5d3b3');}if(roadProfile.lanes===4&&degree<3){const horizontal=access[1]||access[3];for(const side of [-.205,.205])mark('detail',px+(horizontal?0:side),.079,pz+(horizontal?side:0),horizontal?.35:.012,.008,horizontal?.012:.35,'#e1e1cf');}if(roadProfile.lanes===0)add('surface',px,.078,pz,.4,.008,.4,'#658e73');for(const [cell,owner] of city.network.bayCells)if(owner===id){add('surface',cell%city.size+.5,.05,Math.floor(cell/city.size)+.5,.9,.04,.9,'#6f9290');}if(degree>=3){add('detail',x+.075,.36,z+.075,.025,.64,.025,'#55676b');add('detail',x+.10,.65,z+.075,.08,.17,.05,'#3f5155');add('detail',x+.105,.695,z+.105,.04,.035,.012,'#3f5155');add('detail',x+.105,.61,z+.105,.04,.035,.012,'#3f5155');}
    if(quality==='high'&&degree<3&&seed%11===0){add('detail',x+.08,.27,z+.92,.02,.47,.02,'#7c8e89');add('detail',x+.08,.52,z+.92,.18,.09,.025,'#85b5b8');}
    if(degree<3&&seed%7===0){add('detail',x+.12,.3,z+.12,.024,.52,.024,'#596b69');add('detail',x+.14,.57,z+.12,.12,.04,.07,'#f1e9c9');}
    if(profile){profile.roadMs+=decorStarted-begin;profile.decorMs+=performance.now()-decorStarted;}

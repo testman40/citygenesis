@@ -1,0 +1,8 @@
+import * as THREE from 'three';import type {VehiclePose} from '../traffic/Traffic';
+export class BicycleView {
+ private wheels:THREE.InstancedMesh;private frames:THREE.InstancedMesh;private riders:THREE.InstancedMesh;private poses:VehiclePose[]=[];private o=new THREE.Object3D();
+ constructor(scene:THREE.Scene){this.wheels=new THREE.InstancedMesh(new THREE.TorusGeometry(.055,.008,4,8),new THREE.MeshStandardMaterial({color:'#344a49'}),64);this.frames=new THREE.InstancedMesh(new THREE.BoxGeometry(.025,.035,.15),new THREE.MeshStandardMaterial({color:'#e5b65d'}),32);this.riders=new THREE.InstancedMesh(new THREE.BoxGeometry(.055,.14,.05),new THREE.MeshStandardMaterial({color:'#699bb4'}),32);for(const m of [this.wheels,this.frames,this.riders]){m.count=0;m.frustumCulled=false;scene.add(m);}}
+ pose(id:string){return this.poses.find(p=>p.id===id);}
+ diagnostics(){return this.poses.map(p=>({id:p.id,x:p.x,z:p.z,kind:p.kind}));}
+ sync(poses:VehiclePose[]){this.poses=poses.slice(0,32);this.wheels.count=this.poses.length*2;this.frames.count=this.riders.count=this.poses.length;this.poses.forEach((p,i)=>{this.o.rotation.set(0,p.angle,0);this.o.position.set(p.x,.18,p.z);this.o.updateMatrix();this.frames.setMatrixAt(i,this.o.matrix);this.o.position.y=.28;this.o.updateMatrix();this.riders.setMatrixAt(i,this.o.matrix);for(let k=0;k<2;k++){const d=k?.07:-.07;this.o.position.set(p.x+Math.sin(p.angle)*d,.135,p.z+Math.cos(p.angle)*d);this.o.rotation.set(0,p.angle+Math.PI/2,0);this.o.updateMatrix();this.wheels.setMatrixAt(i*2+k,this.o.matrix);}});for(const m of [this.wheels,this.frames,this.riders])m.instanceMatrix.needsUpdate=true;}
+}

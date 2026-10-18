@@ -8,7 +8,7 @@ export class Pathfinder {
  private timedCache=new Map<string,number[]|null>();private costRevision=-1;private timedGraphRevision=-1;
  private cache=new Map<string,number[]|null>();private revision=-1;
  searches=0;expanded=0;exhausted=false;
- constructor(private graph:RoadNetwork,private cacheLimit=4096,private mode:'car'|'bus'|'walk'='bus'){}
+ constructor(private graph:RoadNetwork,private cacheLimit=4096,private mode:'car'|'bus'|'walk'|'bike'='bus'){}
  resetBudget(){this.searches=0;this.expanded=0;this.exhausted=false;}
  path(start:number,goal:number,maxExpansions=200000,avoid:readonly number[]=[]):number[]|null {
   if(this.revision!==this.graph.revision){this.cache.clear();this.revision=this.graph.revision;}

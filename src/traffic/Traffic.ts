@@ -5,9 +5,9 @@ import {RoadNetwork} from '../simulation/RoadNetwork';
 import type {Balance} from '../simulation/config';
 import type {Transit,ModalChoice} from '../transit/Transit';
 import {Pathfinder} from './Pathfinder';
-export interface Home {id:number;capacity:number;access:number[]}
+export interface Home {id:number;capacity:number;workers?:number;access:number[]}
 export interface Workplace {id:number;capacity:number;kind:'commercial'|'industrial';access:number[]}
-export interface Commute {home:number;work:number;kind:Workplace['kind'];count:number;path:number[];distance:number;minutes:number;served:number}
+export interface Commute {home:number;work:number;kind:Workplace['kind'];count:number;path:number[];distance:number;minutes:number;served:number;movement?:{walk:number;bus:number;car:number;busPath?:number[];route?:number}}
 export interface TrafficState {ticks:number;remainder:number;capacities:[number,number][];routing?:RoutingState}
 export interface VehiclePose {x:number;z:number;angle:number;roadA?:number;roadB?:number;mapSize?:number;laneAligned?:boolean;trajectory?:LaneLoop;journeyTime?:number;clockTime?:number;id?:string;kind?:VehicleKind;junction?:boolean;piece?:number}
 let fractionScratch=new Float64Array(),orderScratch=new Uint32Array();
@@ -17,6 +17,7 @@ export function apportion(total:number,weights:number[]):number[]{
  const left=total-assigned;if(left>0){const order=orderScratch.subarray(0,n);order.sort((a,b)=>fractionScratch[b]-fractionScratch[a]||a-b);for(let i=0;i<left;i++)result[order[i]]++;}return result;
 }
 export class Traffic {
+ residentMode=false;private get tripFactor(){return this.residentMode?1:2;}
  solveRevision=0;readonly routing:DynamicRouting;routingMonth=0;allowRebalance=false;private pathsDynamic=false;private carCounts:number[]=[];private carLegs:CarLeg[][]=[];analysis={baselineMinutes:0,actualCarMinutes:0,avoidedMinutes:0,splitOD:0,carDemand:0,busRoadDemand:0};
  residentPopulation:number|undefined;readonly pathfinder:Pathfinder;
  routes:Commute[]=[];volumes=new Map<number,number>();private capacities=new Map<number,number>();
@@ -37,7 +38,7 @@ export class Traffic {
  }
  private volumeBuffer:Float64Array;private multiplierBuffer:Float64Array;
  private inputValues=new Float64Array();private inputLength=-1;private rankValues=new Float64Array();private rankLength=-1;
- private inputsMatch(homes:Home[],workplaces:Workplace[],workers:number){let length=8+this.capacities.size*2;for(const h of homes)length+=3+h.access.length;for(const w of workplaces)length+=4+w.access.length;if(this.inputValues.length<length){const next=new Float64Array(Math.max(length,this.inputValues.length*2));next.set(this.inputValues);this.inputValues=next;}let same=this.signature!==''&&this.inputLength===length,index=0;const put=(v:number)=>{if(!Object.is(this.inputValues[index],v))same=false;this.inputValues[index++]=v;};put(this.graph.revision);put(this.routing.enabled?1:0);put(this.transit?.revision??0);put(this.transit?.stops.size?(this.residentPopulation??NaN):0);put(workers);put(homes.length);put(workplaces.length);put(this.capacities.size);for(const h of homes){put(h.id);put(h.capacity);put(h.access.length);for(const id of h.access)put(id);}for(const w of workplaces){put(w.id);put(w.kind==='industrial'?1:0);put(w.capacity);put(w.access.length);for(const id of w.access)put(id);}for(const [id,v] of this.capacities){put(id);put(v);}this.inputLength=length;this.signature='valid';return same;}
+ private inputsMatch(homes:Home[],workplaces:Workplace[],workers:number){let length=9+this.capacities.size*2;for(const h of homes)length+=4+h.access.length;for(const w of workplaces)length+=4+w.access.length;if(this.inputValues.length<length){const next=new Float64Array(Math.max(length,this.inputValues.length*2));next.set(this.inputValues);this.inputValues=next;}let same=this.signature!==''&&this.inputLength===length,index=0;const put=(v:number)=>{if(!Object.is(this.inputValues[index],v))same=false;this.inputValues[index++]=v;};put(this.graph.revision);put(this.routing.enabled?1:0);put(this.transit?.revision??0);put(this.transit?.stops.size?(this.residentPopulation??NaN):0);put(workers);put(this.tripFactor);put(homes.length);put(workplaces.length);put(this.capacities.size);for(const h of homes){put(h.id);put(h.capacity);put(h.workers??-1);put(h.access.length);for(const id of h.access)put(id);}for(const w of workplaces){put(w.id);put(w.kind==='industrial'?1:0);put(w.capacity);put(w.access.length);for(const id of w.access)put(id);}for(const [id,v] of this.capacities){put(id);put(v);}this.inputLength=length;this.signature='valid';return same;}
  private ranksMatch(workplaces:Workplace[]){const length=workplaces.length*2;if(this.rankValues.length<length){const next=new Float64Array(length);next.set(this.rankValues);this.rankValues=next;}let same=this.rankLength===length;for(let i=0;i<workplaces.length;i++){const w=workplaces[i],kind=w.kind==='industrial'?1:0;if(this.rankValues[i*2]!==w.id||this.rankValues[i*2+1]!==kind)same=false;this.rankValues[i*2]=w.id;this.rankValues[i*2+1]=kind;}this.rankLength=length;return same;}
  private signature='';private ticks=0;private remainder=0;
  constructor(readonly graph:RoadNetwork,readonly config:Balance,readonly transit?:Transit){this.routing=new DynamicRouting(graph,config);this.pathfinder=new Pathfinder(graph,config.maxPathCache);this.volumeBuffer=new Float64Array(graph.size*graph.size);this.multiplierBuffer=new Float64Array(graph.size*graph.size);}
@@ -53,10 +54,10 @@ export class Traffic {
  advance(seconds:number){if(!Number.isFinite(seconds)||seconds<0)throw new Error('交通時間が不正です');this.remainder+=seconds;const ticks=Math.floor((this.remainder+1e-9)/.05);this.ticks+=ticks;this.remainder=Math.max(0,this.remainder-ticks*.05);}
  solve(homes:Home[],workplaces:Workplace[],workers:number):Set<number>{const iterator=this.solveSteps(homes,workplaces,workers);for(let next=iterator.next();;next=iterator.next())if(next.done)return next.value;}
  *solveSteps(homes:Home[],workplaces:Workplace[],workers:number):Generator<void,Set<number>>{
-  const same=this.inputsMatch(homes,workplaces,workers);
+  this.routing.tripFactor=this.tripFactor;const same=this.inputsMatch(homes,workplaces,workers);
   if(same&&!(this.allowRebalance&&this.routing.due(this.routingMonth)))return new Set();
   const previous=this.volumes,changed=new Set<number>();if(!this.ranksMatch(workplaces)){this.ranks.clear();this.rankEntries=0;this.idOrder=Uint32Array.from(workplaces.map((_,i)=>i).sort((a,b)=>workplaces[a].id-workplaces[b].id));}this.routes=[];this.volumes=new Map();this.pathfinder.resetBudget();
-  const available=workplaces.map(w=>w.capacity),people=apportion(workers,homes.map(h=>h.capacity));this.pending=0;this.volumeBuffer.fill(0);const touched:number[]=[];
+  const available=workplaces.map(w=>w.capacity),people=this.residentMode?homes.map(h=>h.workers??0):apportion(workers,homes.map(h=>h.capacity));this.pending=0;this.volumeBuffer.fill(0);const touched:number[]=[];
   let attempts=0,logicalSearches=0;const dynamic=this.routing.enabled;
   for(let hi=0;hi<homes.length;hi++){
    if(this.graph.size>=256||hi%8===0)yield;
@@ -74,17 +75,17 @@ export class Traffic {
     if(minutes>this.config.maxCommuteMinutes)continue;
     const count=Math.min(remaining,available[i]);remaining-=count;available[i]-=count;
     this.routes.push({home:home.id,work:w.id,kind:w.kind,count,path,distance,minutes,served:0});
-    for(const id of path){if(!this.volumeBuffer[id])touched.push(id);this.volumeBuffer[id]+=count*2;}
+    for(const id of path){if(!this.volumeBuffer[id])touched.push(id);this.volumeBuffer[id]+=count*this.tripFactor;}
    }
   }
-  let fixedBusVolume=0;const modal:ModalChoice[]=[];const carServed:number[]=[];const transit=this.transit;const useTransit=!!transit?.stops.size;
+  let fixedBusVolume=0;const modal:ModalChoice[]=[];const carServed:number[]=[];const transit=this.transit;const useTransit=!!transit&&(this.residentMode||!!transit.stops.size);
   if(useTransit){
    transit!.begin(homes,workers,this.config.workforceRatio,this.residentPopulation);
    const predicted=(id:number)=>Math.min(this.config.maxCongestionMultiplier,1+this.config.congestionFactor*(this.volumeBuffer[id]/this.capacity(id))**this.config.congestionExponent);
    for(let ri=0;ri<this.routes.length;ri++){if(ri%8===0)yield;const r=this.routes[ri];let carMinutes=this.config.accessMinutes*2;for(let i=1;i<r.path.length;i++)carMinutes+=this.config.minutesPerRoad*(predicted(r.path[i-1])+predicted(r.path[i]))/2;modal.push(transit!.choose(r.home,r.work,r.count,carMinutes,this.config.minutesPerRoad,id=>1));}
    this.volumeBuffer.fill(0);touched.length=0;
    const add=(id:number,n:number)=>{if(!this.volumeBuffer[id])touched.push(id);this.volumeBuffer[id]+=n;};
-   for(let i=0;i<this.routes.length;i++)if(modal[i].car)for(const id of this.routes[i].path)add(id,modal[i].car*2);
+   for(let i=0;i<this.routes.length;i++)if(modal[i].car)for(const id of this.routes[i].path)add(id,modal[i].car*this.tripFactor);
    for(const service of transit!.services.values())if(service.active){const demand=transit!.roadDemand(service);for(const id of demand.path){add(id,demand.amount);fixedBusVolume+=demand.amount;}}
   }
   else if(transit){transit.begin([],workers,this.config.workforceRatio);transit.carUsers=0;}
@@ -92,9 +93,9 @@ export class Traffic {
   const useRouting=this.routing.enabled&&this.routes.some(r=>this.graph.componentHasCycle(r.path[0]));this.pathsDynamic=useRouting;this.carCounts=carCounts;if(this.routing.enabled&&!useRouting)this.routing.clearUnique();this.carLegs=useRouting?this.routing.reconcile(this.routes,carCounts):[];
   const baselineVolumes=useRouting?new Float64Array(this.volumeBuffer):this.volumeBuffer;let baselineTime=0,carDemand=0;for(let i=0;i<this.routes.length;i++){if(useRouting&&carCounts[i])baselineTime+=carCounts[i]*this.routing.time(this.routes[i].path,baselineVolumes,id=>this.capacity(id));carDemand+=carCounts[i];}
   let busRoadDemand=fixedBusVolume;if(useRouting){
-   for(let i=0;i<this.routes.length;i++)for(const id of this.routes[i].path)this.volumeBuffer[id]-=carCounts[i]*2;
+   for(let i=0;i<this.routes.length;i++)for(const id of this.routes[i].path)this.volumeBuffer[id]-=carCounts[i]*this.tripFactor;
    
-   for(const legs of this.carLegs)for(const l of legs)for(const id of l.path)this.volumeBuffer[id]+=l.count*2;
+   for(const legs of this.carLegs)for(const l of legs)for(const id of l.path)this.volumeBuffer[id]+=l.count*this.tripFactor;
    if(this.allowRebalance)yield* this.routing.rebalance(this.routes,this.carLegs,this.volumeBuffer,id=>this.capacity(id),this.routingMonth);
    touched.length=0;for(let id=0;id<this.volumeBuffer.length;id++)if(this.volumeBuffer[id]>0)touched.push(id);
   }
@@ -112,8 +113,8 @@ export class Traffic {
    route.served=this.routing.enabled?dynamicCarServed:route.minutes<=this.config.maxCommuteMinutes?route.count:0;
    if(useTransit){const m=modal[ri],carMinutes=route.minutes;let busMinutes=0;if(m.busChoice){busMinutes=m.busChoice.walk+transit!.config.waitMinutes+m.busChoice.stops*transit!.config.dwellMinutes;for(let i=1;i<m.busChoice.path.length;i++)busMinutes+=this.config.minutesPerRoad*(this.multiplier(m.busChoice.path[i-1])+this.multiplier(m.busChoice.path[i]))/2;}
     const walk=m.walkMinutes<=this.config.maxCommuteMinutes?m.walk:0,bus=busMinutes<=this.config.maxCommuteMinutes?m.bus:0,car=this.routing.enabled?dynamicCarServed:carMinutes<=this.config.maxCommuteMinutes?m.car:0;
-    carServed[ri]=car;route.served=walk+bus+car;route.minutes=route.count?(m.walk*m.walkMinutes+m.bus*busMinutes+m.car*carMinutes)/route.count:0;transit!.record(m,walk,bus,car,busMinutes);
-   }else if(transit)transit.carUsers+=route.served;
+    carServed[ri]=car;route.served=walk+bus+car;route.minutes=route.count?(m.walk*m.walkMinutes+m.bus*busMinutes+m.car*carMinutes)/route.count:0;transit!.record(m,walk,bus,car,busMinutes);route.movement={walk,bus,car,busPath:m.busChoice?.path,route:m.busChoice?.route};
+   }else{route.movement={walk:0,bus:0,car:route.served};if(transit)transit.carUsers+=route.served;}
    this.employed+=route.served;if(route.kind==='commercial')this.commercialEmployed+=route.served;else this.industrialEmployed+=route.served;
    commuters+=route.count;time+=route.minutes*route.count;distance+=route.distance*route.count;if(useRouting)distance+=this.carLegs[ri].reduce((n,l)=>n+l.count*(l.path.length-1),0)-carCounts[ri]*route.distance;
   }

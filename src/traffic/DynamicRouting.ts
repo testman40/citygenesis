@@ -3,6 +3,7 @@ export interface CarLeg {path:number[];count:number}
 export interface Flow {home:number;work:number;legs:CarLeg[]}
 export interface RoutingState {mode:'time';lastMonth:number;epoch:number;cursor:number;flows:Flow[]}
 export class DynamicRouting {
+ tripFactor=2;
  enabled=false;lastMonth=-3;epoch=0;cursor=0;private flowGraphRevision=-1;private flows=new Map<string,Flow>();readonly finder:Pathfinder;
  profile={searches:0,expanded:0,moved:0,rounds:0,workMs:0,potentialBefore:0,potentialAfter:0,exhausted:false,uniqueNetwork:false};
  constructor(readonly graph:RoadNetwork,readonly config:Balance){this.finder=new Pathfinder(graph,config.maxPathCache);}
@@ -30,7 +31,7 @@ export class DynamicRouting {
     const candidate=this.finder.timePath(r.path[0],r.path.at(-1)!,weights,revision,this.config.minutesPerRoad,P.maxExpansions,P.queryExpansions);
     if(candidate){const oldTime=this.time(source.path,volumes,capacity),newTime=this.time(candidate,volumes,capacity),same=paths.find(l=>l.path.length===candidate.length&&l.path.every((id,j)=>id===candidate[j]));
      if(same!==source&&(same||paths.length<P.maxPaths)&&oldTime-newTime>=Math.max(P.minimumMinutes,oldTime*P.minimumRatio)){
-      let amount=Math.floor(source.count*P.share);const deltas=new Map<number,number>();for(const id of source.path)deltas.set(id,(deltas.get(id)??0)-2);for(const id of candidate)deltas.set(id,(deltas.get(id)??0)+2);
+      let amount=Math.floor(source.count*P.share);const deltas=new Map<number,number>();for(const id of source.path)deltas.set(id,(deltas.get(id)??0)-this.tripFactor);for(const id of candidate)deltas.set(id,(deltas.get(id)??0)+this.tripFactor);
       while(amount>0){let change=0,travelChange=0;for(const [id,delta] of deltas)if(delta){const old=volumes[id],next=Math.max(0,old+delta*amount),cap=capacity(id);change+=this.integral(next,cap)-this.integral(old,cap);travelChange+=next*this.multiplier(next,cap)-old*this.multiplier(old,cap);}
        if(change<-.000001&&travelChange<=.000001){for(const [id,delta] of deltas)volumes[id]=Math.max(0,volumes[id]+delta*amount);source.count-=amount;if(same)same.count+=amount;else paths.push({path:candidate,count:amount});for(let i=paths.length-1;i>=0;i--)if(!paths[i].count)paths.splice(i,1);potential+=change;moved+=amount;this.profile.moved+=amount;break;}amount=Math.floor(amount/2);
       }

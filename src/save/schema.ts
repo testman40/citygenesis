@@ -1,3 +1,5 @@
+import {validateResidents} from '../residents/validateResidents';
+import type {ResidentState} from '../residents/Residents';
 import {validateWaterUtility,type WaterUtilityState} from '../water/WaterUtility';
 import {validateSanitation,type SanitationState} from '../water/Sanitation';
 import {validateEnergy,type EnergyState} from '../energy/Energy';
@@ -15,7 +17,7 @@ import { BALANCE, type Balance } from '../simulation/config';
 import type { TrafficState } from '../traffic/Traffic';
 import type { Speed } from '../simulation/Clock';
 export interface SavedCell {x:number;z:number;road:boolean;zone:number;level:number;age:number;facility:number;decline:number}
-export interface CityState {waterUtility?:WaterUtilityState;sanitation?:SanitationState;energy?:EnergyState;hydrology?:HydrologyState;management?:ManagementState;budget?:BudgetState;size:number;wellness?:WellnessState;safety?:SafetyState;transit?:TransitState;traffic?:TrafficState;developmentOrder:number[];taxRate:number;config:Balance;cells:SavedCell[];month:number;population:number;funds:number;tax:number;maintenance:number;balance:number;constructionSpending:number}
+export interface CityState {residents?:ResidentState;waterUtility?:WaterUtilityState;sanitation?:SanitationState;energy?:EnergyState;hydrology?:HydrologyState;management?:ManagementState;budget?:BudgetState;size:number;wellness?:WellnessState;safety?:SafetyState;transit?:TransitState;traffic?:TrafficState;developmentOrder:number[];taxRate:number;config:Balance;cells:SavedCell[];month:number;population:number;funds:number;tax:number;maintenance:number;balance:number;constructionSpending:number}
 export interface SaveData {version:2|3|4|5;savedAt:string;city:CityState;clock:{speed:Speed;accumulated:number}}
 const obj=(v:unknown):Record<string,unknown>=>{if(!v||typeof v!=='object'||Array.isArray(v))throw new Error('保存データの形式が不正です');return v as Record<string,unknown>;};
 const number=(v:unknown,min:number,max:number,integer=false):number=>{if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max||(integer&&!Number.isInteger(v)))throw new Error('保存データの数値が不正です');return v;};
@@ -47,6 +49,8 @@ export function validateSave(input:unknown):SaveData {
  const weights=config.powerSatisfactionWeight+config.waterSatisfactionWeight+config.employmentSatisfactionWeight+config.taxSatisfactionWeight;
  if(Math.abs(weights-1)>1e-8)throw new Error('満足度の重みが不正です');
  number(config.stepSeconds,.01,3600);
+ const residents=c.residents!==undefined?validateResidents(c.residents,size,cells,number(c.population,0,size*size*config.maxLevel*config.residentsPerLevel,true),config.residentsPerLevel):undefined;
+ const residentWorkers=residents?new Map<number,number>():undefined;for(const h of residents?.households??[])residentWorkers!.set(h[1],(residentWorkers!.get(h[1])??0)+(h[3]===3?0:h[3]===0||h[3]===1?Math.min(2,h[2]):h[2]));
  let traffic:TrafficState={ticks:0,remainder:0,capacities:[]};
  if((s.version===3||s.version===4||s.version===5)&&!c.traffic)throw new Error('交通データがありません');
  if(c.traffic){
@@ -54,12 +58,12 @@ export function validateSave(input:unknown):SaveData {
   if(remainder>=.05||!Array.isArray(t.capacities)||t.capacities.length>cells.length)throw new Error('交通データが不正です');
   const roadIds=new Set(cells.filter(c=>c.road).map(c=>c.z*size+c.x)),seenCapacity=new Set<number>();
   const capacities:[number,number][]=t.capacities.map(v=>{if(!Array.isArray(v)||v.length!==2)throw new Error('道路容量が不正です');const id=number(v[0],0,size*size-1,true),capacity=number(v[1],.01,1e6);if(!roadIds.has(id)||seenCapacity.has(id))throw new Error('道路容量の参照が不正です');seenCapacity.add(id);return [id,capacity];});
-  traffic={ticks,remainder,capacities,...(t.routing!==undefined?{routing:validateRouting(t.routing,size,cells,number(c.month,0,1e9,true),number(c.population,0,size*size*config.maxLevel*config.residentsPerLevel,true),config)}:{})};
+  traffic={ticks,remainder,capacities,...(t.routing!==undefined?{routing:validateRouting(t.routing,size,cells,number(c.month,0,1e9,true),number(c.population,0,size*size*config.maxLevel*config.residentsPerLevel,true),config,residentWorkers)}:{})};
  }
  for(const key of ['roadCapacity','minutesPerRoad','maxCommuteMinutes','displayMinutesPerSecond'] as const)number(config[key],.01,1e6);
  for(const key of ['maxDisplayVehicles','maxRouteSearches','maxPathExpansions','maxPathCache'] as const)number(config[key],1,key==='maxDisplayVehicles'?512:1e6,true);
  number(config.maxCongestionMultiplier,1,100);
- const city:CityState={...(c.safety!==undefined?{safety:validateSafety(c.safety,size,cells)}:{}),...(c.transit?{transit:validateTransit(c.transit,size)}:{}),traffic,developmentOrder:[...order],taxRate:number(s.version===1?1:c.taxRate,.5,2),size,config,cells,month:number(c.month,0,1e9,true),population:number(c.population,0,size*size*config.maxLevel*config.residentsPerLevel,true),funds:number(c.funds,-1e12,1e12),tax:number(c.tax,0,1e12),maintenance:number(c.maintenance,0,1e12),balance:number(c.balance,-1e12,1e12),constructionSpending:number(c.constructionSpending,0,1e12)};
+ const city:CityState={...(residents?{residents}:{}),...(c.safety!==undefined?{safety:validateSafety(c.safety,size,cells)}:{}),...(c.transit?{transit:validateTransit(c.transit,size)}:{}),traffic,developmentOrder:[...order],taxRate:number(s.version===1?1:c.taxRate,.5,2),size,config,cells,month:number(c.month,0,1e9,true),population:number(c.population,0,size*size*config.maxLevel*config.residentsPerLevel,true),funds:number(c.funds,-1e12,1e12),tax:number(c.tax,0,1e12),maintenance:number(c.maintenance,0,1e12),balance:number(c.balance,-1e12,1e12),constructionSpending:number(c.constructionSpending,0,1e12)};
  if(c.wellness!==undefined)city.wellness=validateWellness(c.wellness,size,cells,city.safety,city.population,city.month);
  if(city.transit?.infrastructure){const occupied=new Set([...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(s=>s.id),...(city.wellness?.facilities??[]).map(f=>f.id)]),roads=new Set(cells.filter(t=>t.road).map(t=>t.z*size+t.x));for(const d of city.transit.infrastructure.depots)if(occupied.has(d.id)||Math.abs(d.id%size-d.road%size)+Math.abs(Math.floor(d.id/size)-Math.floor(d.road/size))!==1)throw Error('車庫の位置が不正です');for(const [id] of city.transit.infrastructure.directions)if(!roads.has(id))throw Error('道路規制の参照が不正です');}
  if(c.hydrology!==undefined)city.hydrology=validateHydrology(c.hydrology,size,[...cells.filter(t=>!t.road).map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(s=>s.id),...(city.wellness?.facilities??[]).map(f=>f.id),...(city.transit?.infrastructure?.depots??[]).map(d=>d.id)]);

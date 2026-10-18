@@ -9,6 +9,7 @@ export function cityFacts(city:City,cells=city.snapshot().cells):CityFacts {
 }
 export function nextActions(city:City):GuideAction[]{
   const result:GuideAction[]=[];
+  if(city.residents&&!city.residents.gateways(city).length)return [{id:'outside-road',title:'マップの端から街へ道路をつなぐ',reason:'新しい住民はマップ外から車で転入します。',action:'地図の端の道路を住宅までつなぎ、住宅の完成後に時間を進めましょう。',tool:'road'}];
   const failed=[...city.transit.operations.buses.values()].find(b=>b.state==='error');
   if(failed)result.push({id:'bus-recovery',title:'異常停止したバスを確認',reason:'道路や施設の変更で停止した便があります。',action:'便を選び、診断と復旧案内を確認します。',panel:'bus-recovery-panel'});
   const requests=citizenRequests(city);
@@ -38,7 +39,7 @@ export function tutorialSteps(city:City,financeViewed:boolean,undoUsed:boolean):
   const cells=city.snapshot().cells,facts=cityFacts(city,cells);
   const watered=(kind:'home'|'work')=>cells.some(c=>(kind==='home'?c.zone===1:c.zone===2||c.zone===3)&&city.networkConnected(c)&&(city.waterUtility?.status(c.z*city.size+c.x).water??city.hydrology?.at(c.z*city.size+c.x)??city.waterRatio)>=.8);
   return [
-    {id:'road',title:'1. 道路を敷く',description:'地図上でドラッグして道を作ります。建設時は一時停止します。',done:facts.roads>0,tool:'road'},
+    {id:'road',title:'1. 道路を敷く',description:city.residents?'地図の端から住宅予定地まで道路をつなぎます。建設時は一時停止します。':'地図上でドラッグして道を作ります。建設時は一時停止します。',done:city.residents?city.residents.gateways(city).length>0:facts.roads>0,tool:'road'},
     {id:'undo',title:'2. 操作を取り消してみる',description:'道路を試しに1マス伸ばして「取り消す」。1回のドラッグをまとめて戻せます。時間を進めると履歴は終了します。',done:undoUsed},
     {id:'home',title:'3. 道路沿いに住宅を指定',description:'道路の上下左右に住宅を指定します。斜めだけでは接続できません。',done:facts.connectedHomes>0,tool:'residential'},
     {id:'work',title:'4. 商業・工業で職場を作る',description:'同じ道路網に職場区画を指定します。住民が通える配置にしましょう。',done:facts.connectedWorkplaces>0,tool:'commercial'},

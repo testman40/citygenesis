@@ -1,7 +1,13 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>街のにぎわい改善版</strong></p>
+<p class="updates-current">表示中の版：<strong>住民・転入改善版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-18：外部からの転入と住民情報</h3>
+<ul><li><strong>道路から転入</strong> — マップ端につながる道路と空き住宅を用意すると、転入車が道路を通って到着後に入居します。</li>
+<li><strong>住民・世帯ビュー</strong> — 家族構成、子供・大人・高齢者、職場と現在の行動を確認できます。</li>
+<li><strong>住民を追跡</strong> — 住民を選んで追跡すると、その場所と移動経路へカメラが追従します。</li></ul>
+<p class="workspace-tip">既存住民は人口を維持して世帯に移行します。行動は日課モデルで、個人の実バス乗降や加齢・出生は未対応です。従来の保存バージョン4/5に住民データの任意項目を追加しています。</p>
+</article>
 <article class="update-entry"><h3>街のにぎわいと遊び方を拡張</h3>
 <ul>
 <li><strong>歩行者・待ち客</strong> — 近くの街路と停留所に人を表示します。人数は街の活動と需要をもとにした代表表現です。</li>

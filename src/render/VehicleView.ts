@@ -14,6 +14,7 @@ export class VehicleView {
  private matrix=new THREE.Matrix4();private pos=new THREE.Vector3();private scale=new THREE.Vector3();private rotation=new THREE.Quaternion();private up=new THREE.Vector3(0,1,0);private color=new THREE.Color();
  private displayed:VehiclePose[]=[];private last=performance.now();
  constructor(scene:THREE.Scene){this.bodies.count=0;this.cabins.count=0;this.bodies.frustumCulled=false;this.cabins.frustumCulled=false;this.lights.count=0;this.lights.frustumCulled=false;this.lights.visible=false;scene.add(this.bodies,this.cabins,this.lights);}
+ pose(id:string){return this.displayed.find(p=>p.id===id);}
  reset(){this.displayed=[];this.last=performance.now();this.bodies.count=0;this.cabins.count=0;this.lights.count=0;}
  diagnostics(){return this.displayed.map((p,i)=>({...vehicleDiagnostic(p),kind:p.kind??['car','van','truck'][i%3]}));}
  sync(poses:VehiclePose[]){
@@ -21,7 +22,7 @@ export class VehicleView {
   this.bodies.count=Math.min(poses.length,96);this.displayed.length=this.bodies.count;let upper=0;
   for(let i=0;i<this.bodies.count;i++){
    const target=poses[i];let p=this.displayed[i];
-   if(!p||Math.hypot(p.x-target.x,p.z-target.z)>6)p={...target};
+   if(!p||p.id!==target.id||Math.hypot(p.x-target.x,p.z-target.z)>6)p={...target};
    else if(!this.paused){const move=1-Math.exp(-dt/0.06),turn=1-Math.exp(-dt/0.12);p.x+=(target.x-p.x)*move;p.z+=(target.z-p.z)*move;const angle=Math.atan2(Math.sin(target.angle-p.angle),Math.cos(target.angle-p.angle));p.angle+=angle*turn;}
    constrainVehicle(p,target);this.displayed[i]=p;this.rotation.setFromAxisAngle(this.up,p.angle);
    const kind=target.kind?['car','van','truck'].indexOf(target.kind):i%3,w=kind===0?.22:.25,l=kind===0?.40:kind===1?.49:.59,s=VEHICLE_VISUAL.carScale,y=(h:number)=>ROAD_VISUAL.surfaceY+(h-.11)*s;

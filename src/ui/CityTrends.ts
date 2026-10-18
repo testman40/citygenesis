@@ -1,6 +1,6 @@
 import type {City} from '../simulation/City';
 export interface TrendPoint {scenery:number;month:number;population:number;satisfaction:number;balance:number;tax:number;maintenance:number;power:number;water:number;employment:number;taxRate:number;commute:number;safety:number;wellness:number}
-export function trendPoint(city:City):TrendPoint{const workers=Math.floor(city.population*city.config.workforceRatio);return {scenery:city.sceneryBonus,month:city.month,population:city.population,satisfaction:city.satisfaction,balance:city.balance,tax:city.tax,maintenance:city.maintenance,power:city.powerRatio,water:city.waterRatio,employment:workers?city.employed/workers:1,taxRate:city.taxRate,commute:city.traffic.averageMinutes,safety:city.safety.penalty,wellness:city.wellness.penalty};}
+export function trendPoint(city:City):TrendPoint{const workers=city.workforce;return {scenery:city.sceneryBonus,month:city.month,population:city.population,satisfaction:city.satisfaction,balance:city.balance,tax:city.tax,maintenance:city.maintenance,power:city.powerRatio,water:city.waterRatio,employment:workers?city.employed/workers:1,taxRate:city.taxRate,commute:city.traffic.averageMinutes,safety:city.safety.penalty,wellness:city.wellness.penalty};}
 const number=(n:number)=>Math.round(n*10)/10;
 export function explainChanges(before:TrendPoint,after:TrendPoint){
  const conditions:string[]=[];

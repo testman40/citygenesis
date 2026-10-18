@@ -1,7 +1,12 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>住民・転入改善版</strong></p>
+<p class="updates-current">表示中の版：<strong>交差点の渋滞修正版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-18：交差点での停止・再発進を修正</h3>
+<ul><li><strong>交差点の手前で待機</strong> — 車体の先端がはみ出して、通過中の車を塞ぐ問題を修正しました。</li>
+<li><strong>出口の空きを確認</strong> — 出口が詰まっている場合は進入を待ち、空いてから再発進します。車体の後端が通過するまで交差点の優先権を維持します。</li></ul>
+<p class="workspace-tip">交通量が道路容量を超える混雑は残ります。この修正は、車・バスが互いを塞いで動けなくなる不具合への対策です。</p>
+</article>
 <article class="update-entry"><h3>2026-10-18：外部からの転入と住民情報</h3>
 <ul><li><strong>道路から転入</strong> — マップ端につながる道路と空き住宅を用意すると、転入車が道路を通って到着後に入居します。</li>
 <li><strong>住民・世帯ビュー</strong> — 家族構成、子供・大人・高齢者、職場と現在の行動を確認できます。</li>

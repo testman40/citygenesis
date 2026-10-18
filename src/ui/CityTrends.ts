@@ -1,10 +1,10 @@
 import type {City} from '../simulation/City';
-export interface TrendPoint {month:number;population:number;satisfaction:number;balance:number;tax:number;maintenance:number;power:number;water:number;employment:number;taxRate:number;commute:number;safety:number;wellness:number}
-export function trendPoint(city:City):TrendPoint{const workers=Math.floor(city.population*city.config.workforceRatio);return {month:city.month,population:city.population,satisfaction:city.satisfaction,balance:city.balance,tax:city.tax,maintenance:city.maintenance,power:city.powerRatio,water:city.waterRatio,employment:workers?city.employed/workers:1,taxRate:city.taxRate,commute:city.traffic.averageMinutes,safety:city.safety.penalty,wellness:city.wellness.penalty};}
+export interface TrendPoint {scenery:number;month:number;population:number;satisfaction:number;balance:number;tax:number;maintenance:number;power:number;water:number;employment:number;taxRate:number;commute:number;safety:number;wellness:number}
+export function trendPoint(city:City):TrendPoint{const workers=Math.floor(city.population*city.config.workforceRatio);return {scenery:city.sceneryBonus,month:city.month,population:city.population,satisfaction:city.satisfaction,balance:city.balance,tax:city.tax,maintenance:city.maintenance,power:city.powerRatio,water:city.waterRatio,employment:workers?city.employed/workers:1,taxRate:city.taxRate,commute:city.traffic.averageMinutes,safety:city.safety.penalty,wellness:city.wellness.penalty};}
 const number=(n:number)=>Math.round(n*10)/10;
 export function explainChanges(before:TrendPoint,after:TrendPoint){
  const conditions:string[]=[];
- for(const [key,label,scale] of [['power','電力充足',100],['water','給水充足',100],['employment','就業率',100],['taxRate','税倍率',1],['commute','平均通勤（分）',1],['safety','安全サービスの満足度影響',1],['wellness','医療・教育の満足度影響',1]] as const){if(Math.abs(after[key]-before[key])>.0001)conditions.push(label+' '+number(before[key]*scale)+' → '+number(after[key]*scale)+(scale===100?'%':''));}
+ for(const [key,label,scale] of [['scenery','公園・広場の住宅平均効果',1],['power','電力充足',100],['water','給水充足',100],['employment','就業率',100],['taxRate','税倍率',1],['commute','平均通勤（分）',1],['safety','安全サービスの満足度影響',1],['wellness','医療・教育の満足度影響',1]] as const){if(Math.abs(after[key]-before[key])>.0001)conditions.push(label+' '+number(before[key]*scale)+' → '+number(after[key]*scale)+(scale===100?'%':''));}
  if(after.tax!==before.tax)conditions.push('税収 '+number(before.tax)+' → '+number(after.tax));
  if(after.maintenance!==before.maintenance)conditions.push('維持費 '+number(before.maintenance)+' → '+number(after.maintenance));
  const shortages=[after.power<.5?'電力不足':'',after.water<.5?'給水不足':'',after.employment<.65?'就業不足':''].filter(Boolean);

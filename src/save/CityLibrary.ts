@@ -1,6 +1,7 @@
+import type {ScenarioProgress} from '../scenarios/Scenarios';
 import {validateSave,type SaveData} from './schema';
 export interface LibraryBackup {id:string;savedAt:string;data:SaveData}
-export interface LibraryEntry {name:string;thumbnail?:string;updatedAt?:string;backups:LibraryBackup[];busService?:Record<string,{enabled:boolean;interval:number}>}
+export interface LibraryEntry {scenario?:ScenarioProgress;name:string;thumbnail?:string;updatedAt?:string;backups:LibraryBackup[];busService?:Record<string,{enabled:boolean;interval:number}>}
 export const emptyEntry=():LibraryEntry=>({name:'',backups:[]});
 /** Browser-local catalogue, separate from the unchanged city-file format and original save DB. */
 export class CityLibrary {

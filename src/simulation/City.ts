@@ -1,3 +1,4 @@
+import {ParkEffects,PARK_EFFECTS} from '../scenery/ParkEffects';
 import {quoteBridge} from '../roads/Bridge';
 import {WaterUtility} from '../water/WaterUtility';
 import {Sanitation,SEWAGE,SANITATION,type SewageKind} from '../water/Sanitation';
@@ -59,7 +60,7 @@ export class City {
   private census:{c:Cell;t:Tile;chunk:Chunk;i:number;home?:Home;workplace?:Workplace}[]=[];
   private facilities=new Map<string,Cell>();
   powerSupply=0;waterSupply=0;powerDemand=0;waterDemand=0;powerRatio=1;waterRatio=1;
-  private sceneryMaintenance=0;
+  private sceneryMaintenance=0;readonly parks=new ParkEffects();sceneryBonus=0;
   powerPlants=0;waterPlants=0;satisfaction=100;taxRate=1;infrastructureMaintenance=0;
   setTaxRate(value:number){if(this.updating||this.abandoned)throw new Error("都市更新中の税変更はキューを使用してください");if(!Number.isFinite(value)||value<.5||value>2)throw new Error('税率が不正です');this.taxRate=value;this.recount();}
   readonly dirty = new Set<string>();
@@ -278,6 +279,7 @@ export class City {
     const oldPower=this.powerRatio,oldWater=this.waterRatio;
     this.sceneryMaintenance=0;this.powerPlants=0;this.waterPlants=0;this.powerSupply=this.roadCount&&(this.energy?.importEnabled??true)?this.config.starterPower:0;this.waterSupply=this.roadCount?this.config.starterWater:0;
     for(const c of this.facilities.values()){const t=this.tile(c);if(t.facility==='power'){this.powerPlants++;if(t.networkConnected)this.powerSupply+=this.config.powerCapacity;}else if(t.facility==='water'){this.waterPlants++;if(t.networkConnected)this.waterSupply+=this.config.waterCapacity;}else if(t.facility==='park'||t.facility==='plaza')this.sceneryMaintenance+=(t.facility==='park'?1:2)*(this.management?.parameters.maintenance??1);}
+    this.parks.configure(this.size,[...this.facilities.values()].flatMap(c=>{const t=this.tile(c);return t.networkConnected&&(t.facility==='park'||t.facility==='plaza')?[{id:c.z*this.size+c.x,kind:t.facility}]:[];}));
     if(this.energy){this.energy.evaluate(this.month,this.network);this.powerSupply+=this.energy.supply;}
     this.infrastructureMaintenance=this.sceneryMaintenance+this.powerPlants*this.config.powerMaintenance+this.waterPlants*this.config.waterMaintenance+this.transit.maintenance+this.safety.maintenance+this.wellness.maintenance+(this.hydrology?.maintenance??0)+(this.energy?.maintenance??0)+(this.sanitation?.maintenance??0)+(this.waterUtility?.maintenance??0);
     this.powerDemand=0;this.waterDemand=0;
@@ -341,8 +343,9 @@ export class City {
     }
     this.satisfaction=Math.max(0,this.satisfaction-Math.round(this.wellness.penalty));
     if(this.waterUtility)this.satisfaction=Math.max(0,this.satisfaction-Math.round(this.waterUtility.penalty));
+    this.sceneryBonus=this.parks.average(homes);this.satisfaction=Math.min(100,Math.round(this.satisfaction+this.sceneryBonus));
     const clamp=(n:number)=>Math.round(Math.max(0,Math.min(100,n)));
-    this.demand.residential=clamp(this.config.housingBaseDemand+this.jobs*this.config.housingJobWeight-this.population*this.config.housingPopulationWeight+(this.wellness.educationEnabled?this.wellness.education*this.wellness.config.housingEducationDemand:0));
+    this.demand.residential=clamp(this.config.housingBaseDemand+this.sceneryBonus*PARK_EFFECTS.demandPerPoint+this.jobs*this.config.housingJobWeight-this.population*this.config.housingPopulationWeight+(this.wellness.educationEnabled?this.wellness.education*this.wellness.config.housingEducationDemand:0));
     // Only the opt-in regeneration model changes demand; legacy and observer cities retain their formulas.
     if(this.management?.lifecycle?.mode==='evolve'&&!this.management.lifecycle.settlementPending&&workforce>0&&employment<LIFE_BALANCE.employmentFloor)this.demand.residential=Math.min(this.demand.residential,Math.max(0,this.config.minimumDemand-1));
     const workers=this.population*this.config.workforceRatio;

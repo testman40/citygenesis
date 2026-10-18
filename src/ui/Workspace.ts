@@ -18,6 +18,7 @@ export class Workspace {
   onNavigate:(category:Category|null)=>void=()=>{};
   onAction:(action:GuideAction)=>void=()=>{};
   onUndo:()=>void=()=>{};
+  onRedo:()=>void=()=>{};
   onPlay:()=>void=()=>{};
   private owner:City|undefined;
   private tutorial=false;
@@ -28,13 +29,13 @@ export class Workspace {
   private dismissed=false;
   constructor(){
     const app=element('app');
-    app.insertAdjacentHTML('beforeend',`<div id="workspace-menu" role="toolbar" aria-label="ゲームメニュー">${Object.entries(titles).filter(([id])=>id!=='updates').map(([id,title])=>`<button type="button" data-workspace="${id}" aria-controls="workspace-drawer" aria-expanded="false">${toolIcon(id==='build'?'road':id==='save'?'save':id==='help'?'help':id==='transit'?'route':id==='goals'?'goals':id==='audio'?'audio':'manage')}<span>${title}</span></button>`).join('')}<button id="undo-build" type="button" disabled title="Ctrl / ⌘ + Z">↶ 取り消す</button></div>
+    app.insertAdjacentHTML('beforeend',`<div id="workspace-menu" role="toolbar" aria-label="ゲームメニュー">${Object.entries(titles).filter(([id])=>id!=='updates').map(([id,title])=>`<button type="button" data-workspace="${id}" aria-controls="workspace-drawer" aria-expanded="false">${toolIcon(id==='build'?'road':id==='save'?'save':id==='help'?'help':id==='transit'?'route':id==='goals'?'goals':id==='audio'?'audio':'manage')}<span>${title}</span></button>`).join('')}<button id="undo-build" type="button" disabled title="Ctrl / ⌘ + Z">↶ 取り消す</button><button id="redo-build" type="button" disabled title="Ctrl / ⌘ + Shift + Z">↷ やり直す</button></div>
     <section id="workspace-drawer" aria-labelledby="workspace-title" hidden><div class="workspace-heading"><h2 id="workspace-title"></h2><button id="workspace-close" aria-label="メニューを閉じる">閉じる ×</button></div>
-      <div data-workspace-page="build"><p>ツールを選んで地図を操作します。</p>${tools.map(([label,items])=>`<details ${label==='街の基本'?'open':''}><summary>${label}</summary><div class="build-palette">${items.map(([tool,label])=>`<button data-tool="${tool}">${label}</button>`).join('')}</div></details>`).join('')}<p class="workspace-tip">道路・区画は一時停止中にまとめて取り消せます。施設・管・停留所の変更は対象外です。</p></div>
+      <div data-workspace-page="build"><p>ツールを選んで地図を操作します。</p>${tools.map(([label,items])=>`<details ${label==='街の基本'?'open':''}><summary>${label}</summary><div class="build-palette">${items.map(([tool,label])=>`<button data-tool="${tool}">${label}</button>`).join('')}</div></details>`).join('')}<p id="scenery-status" class="workspace-tip"></p><p class="workspace-tip">道路・区画・施設・地下管・橋は一時停止中に取り消し・やり直しできます。運行中の管理バスがある都市と、停留所の配置・撤去は対象外です。</p></div>
       ${['info','transit','manage','save','help','updates','goals','audio'].map(id=>`<div data-workspace-page="${id}" id="workspace-${id}"></div>`).join('')}
     </section>
     <section id="guide-panel" aria-label="都市づくりの案内"><div class="guide-heading"><b id="guide-kind">次にすること</b><button id="guide-dismiss" type="button" aria-label="案内を小さくする">−</button></div><div id="guide-content"></div><button id="guide-expand" type="button" hidden>案内を表示</button></section>
-    <p id="undo-status" role="status">道路・区画の建設と撤去を戻せます。</p>`);
+    <p id="undo-status" role="status">建設・撤去を取り消し・やり直しできます。</p>`);
     element('workspace-updates').innerHTML=UPDATES_HTML;
     const updates=document.createElement('button');updates.id='updates-open';updates.type='button';updates.textContent='更新履歴';updates.setAttribute('aria-label','アップデート履歴を開く');updates.setAttribute('aria-controls','workspace-drawer');updates.setAttribute('aria-expanded','false');
     document.querySelector('header .stats')!.append(updates);updates.onclick=()=>this.open(this.category==='updates'?null:'updates');
@@ -44,11 +45,11 @@ export class Workspace {
     document.querySelector('.save-panel')!.append(element('new-city-panel'));
     const time=document.querySelector('.simulation-panel .time')!;time.id='playback';app.append(time);
     element<HTMLDetailsElement>('management-panel').open=true;
-    const help=element('help-panel');help.hidden=false;
+    const help=element('help-panel');help.hidden=false;help.insertAdjacentHTML('beforeend','<p>歩行者は近くの住宅・商業に対応する代表的な街路表現です。待ち客は月次の需要をもとに表示し、1人の表示が住民1人に対応するものではありません。遠景で非表示、近景で最大128人です。</p><p>建設のやり直し：Ctrl / ⌘ + Shift + Z、またはCtrl + Y。時間を進めると建設履歴を終了します。</p>');
     help.insertAdjacentHTML('beforebegin','<button id="tutorial-start" type="button">街づくりチュートリアルを開始・再表示</button><p>途中で閉じても、都市の状態はそのままです。</p>');
     element('workspace-menu').addEventListener('click',e=>{const button=(e.target as HTMLElement).closest<HTMLElement>('[data-workspace]');if(button){const category=button.dataset.workspace as Category;this.open(this.category===category?null:category);}});
     element('workspace-close').onclick=()=>this.close(true);
-    element('undo-build').onclick=()=>this.onUndo();
+    element('undo-build').onclick=()=>this.onUndo();element('redo-build').onclick=()=>this.onRedo();
     element('tutorial-start').onclick=()=>{this.tutorial=true;this.dismissed=false;this.close();this.invalidate();};
     element('guide-dismiss').onclick=()=>{this.dismissed=true;this.paintCollapsed();};
     element('guide-expand').onclick=()=>{this.dismissed=false;this.paintCollapsed();};
@@ -91,6 +92,7 @@ export class Workspace {
   refresh(city:City){
     if(city!==this.owner)this.reset(city);
     if(performance.now()-this.stamp<300)return;this.stamp=performance.now();
+    element('scenery-status').textContent='公園は4マス、広場は3マスの範囲で住宅へ効果（道路接続が必要）。重複は最大値。現在の都市平均：満足度 +'+city.sceneryBonus.toFixed(1)+' / 住宅需要 +'+(city.sceneryBonus*1.5).toFixed(1)+'。';
     const steps=tutorialSteps(city,this.financeViewed,this.undoUsed),step=steps.find(s=>!s.done);
     const actions=nextActions(city),signature=JSON.stringify([this.tutorial,steps,actions]);
     if(signature===this.signature)return;this.signature=signature;

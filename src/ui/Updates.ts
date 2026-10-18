@@ -1,7 +1,17 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>街の暮らし拡張版</strong></p>
+<p class="updates-current">表示中の版：<strong>街のにぎわい改善版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>街のにぎわいと遊び方を拡張</h3>
+<ul>
+<li><strong>歩行者・待ち客</strong> — 近くの街路と停留所に人を表示します。人数は街の活動と需要をもとにした代表表現です。</li>
+<li><strong>公園・広場の効果</strong> — 道路で接続した施設が周辺住宅の満足度と住宅需要を改善します。距離で減衰し、重複は最大値を使います。</li>
+<li><strong>取り消し・やり直しを拡張</strong> — 施設・地下管・橋も操作単位で戻し、やり直せます。再生・設定変更・読込で履歴を終了します。</li>
+<li><strong>バスの経営分析</strong> — 路線の利用者・輸送枠・乗車状況・維持費を確認できます。運賃による収支は試算で、都市資金へ加算しません。</li>
+<li><strong>3つのシナリオ</strong> — 赤字再建・橋の接続・循環バスを課題都市で遊べます。現在の都市を保存してから別スロットで開始します。</li>
+</ul>
+<p class="workspace-tip">都市ファイルの形式は維持しています。課題の進捗はこのブラウザーの都市管理情報へ保存します。停留所・路線の専用編集、運行中の管理バスがある都市は取り消し対象外です。</p>
+</article>
 <article class="update-entry"><h3>街の暮らしと遊びの幅を拡張</h3>
 <ul>
 <li><strong>発展目標</strong> — 街の成長を目標と達成通知で確認できます。</li>
@@ -23,7 +33,7 @@ export const UPDATES_HTML=`
 <li><strong>バス復旧を分かりやすく</strong> — 原因の確認地点へ移動し、道路を修復して選択した便だけ再開できます。</li>
 <li><strong>更新履歴を追加</strong> — トップ画面の「更新履歴」から、変更点を確認できます。</li>
 </ul>
-<p class="workspace-tip">取り消しの対象は道路・区画です。施設・管・停留所などは対象外で、時間を進めると履歴を終了します。都市ファイルの保存形式は維持しています。</p>
+<p class="workspace-tip">この更新当時の取り消し対象は道路・区画でした。現在は上記のとおり施設・地下管・橋にも対応します。時間を進めると履歴を終了し、都市ファイルの保存形式は維持しています。</p>
 </article>
 <details class="update-entry"><summary>これまでの基本機能</summary>
 <ul><li>道路・住宅・商業・工業による都市建設、人口と雇用、税収・予算の管理</li>

@@ -32,10 +32,10 @@ test('month, policy, city switch, and untracked edits each invalidate undo witho
   }
 });
 
-test('mixed demolition of facilities is never recorded and cannot resurrect facilities',()=>{
+test('mixed facility demolition restores its services, costs and exact configuration on undo and redo',()=>{
   const city=City.create(64),history=new BuildHistory();city.apply(c(20),c(25),'road');city.apply(c(22,31),c(22,31),'clinic');
   const before=city.snapshot();city.applyStroke(c(20,31),c(25,31),'erase');
-  assert.equal(history.record(city,before,'撤去'),false);assert.equal(history.undo(city),undefined);assert.equal(city.wellness.facilities.size,0);
+  const after=city.snapshot();assert.equal(history.record(city,before,'撤去'),true);const restored=history.undo(city)!;assert.deepEqual(restored.snapshot(),before);assert.equal(restored.wellness.facilities.size,1);const redone=history.redo(restored)!;assert.deepEqual(redone.snapshot(),after);assert.equal(redone.wellness.facilities.size,0);
 });
 
 test('no-op does not consume previous history and asynchronous road batches undo as a single transaction',async()=>{

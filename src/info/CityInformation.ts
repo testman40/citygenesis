@@ -10,7 +10,7 @@ export function informationAt(c:City,id:number,mode:InfoMode):{state:InfoState;v
  const t=c.tile({x,z}),h=c.hydrology,w=c.waterUtility;if(w&&['water','sewage','environment'].includes(mode)&&!t.road&&!t.zone&&!t.facility&&!h?.pipes.has(id))return {state:'neutral',value:null,note:'給排水の対象外'};let value:number|null=null,note='';let state:InfoState|undefined;
  switch(mode){
  case 'normal':return {state:'neutral',value:null,note:'用途色'};
- case 'happiness':value=c.satisfaction/100;note='都市全体の実測値。区域別幸福度は未実装';break;
+ case 'happiness':value=c.satisfaction/100;note='都市全体の実測値。このマスの公園効果 +'+c.parks.at(id).toFixed(1)+'（都市値には住宅の平均効果を反映）';break;
  case 'demand':if(t.zone){value=c.demand[t.zone]/100;state=value>=INFO_THRESHOLDS.demandGood/100?'green':value>=INFO_THRESHOLDS.demandCaution/100?'blue':'red';note='開発需要（低い値は成長余地が小さい）';}else note='区画が対象';break;
  case 'power':value=t.networkConnected?c.powerRatio:0;note=t.networkConnected?'都市の電力充足':'主道路網に未接続';break;
  case 'water':if(w){const r=w.status(id);value=r.water;note=r.connected?'施設式の給水能力・需要':'道路/管網に未接続';break;}value=h?h.at(id):t.networkConnected?c.waterRatio:0;note=h?'管網の有効給水（排水・水質を含む）':'外部給水＋給水施設の従来方式';break;

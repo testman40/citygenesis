@@ -1,0 +1,11 @@
+import type {City} from '../simulation/City';
+import {routeEconomics} from '../transit/RouteEconomics';
+export class RouteEconomicsPanel {
+ private root:HTMLDetailsElement;private fare:HTMLInputElement;private signature='';
+ constructor(){this.root=document.createElement('details');this.root.id='bus-economics';this.root.innerHTML='<summary>路線ごとの利用・経営分析</summary><label>試算運賃（1乗車）<input id="bus-estimate-fare" type="number" value="1" min="0" max="100" step="0.1"></label><p>利用者・輸送枠は現在の月次計算、乗車中・乗車累計は現在の便です。運賃収入と収支は試算で、都市の資金へ加算しません。維持費は交通予算の費用を配分しています。</p><div id="bus-economics-rows"></div><small id="bus-economics-other"></small>';document.getElementById('workspace-transit')!.append(this.root);this.fare=this.root.querySelector('input')!;this.root.ontoggle=()=>{if(this.root.open)this.root.scrollIntoView({block:'start'});};}
+ refresh(city:City){if(!this.root.open)return;const report=routeEconomics(city.transit,Number(this.fare.value)),signature=JSON.stringify(report);if(signature===this.signature)return;this.signature=signature;const list=this.root.querySelector('#bus-economics-rows')!;list.replaceChildren();const fmt=(v:number)=>v.toLocaleString('ja-JP',{maximumFractionDigits:1});
+  if(!report.rows.length)list.textContent='路線を作成すると利用状況と維持費が表示されます。';
+  for(const row of report.rows){const article=document.createElement('article');article.className='city-goal';const title=document.createElement('strong');title.textContent=row.name+' · '+(row.running?'運行可能':'運休・接続確認');const content=document.createElement('p');content.textContent='利用者 '+fmt(row.riders)+' / 輸送枠 '+fmt(row.capacity)+'人 · 利用率 '+fmt(row.utilization*100)+'%\n乗車中 '+row.onboard+'人 / 現在の便の乗車累計 '+row.boarded+'人\n1便あたり出発需要の目安 '+row.waiting+'人\n月次維持費 '+fmt(row.cost)+'（運行 '+fmt(row.operating)+'・停留所 '+fmt(row.stops)+'・保有 '+fmt(row.ownership)+'・車庫 '+fmt(row.depotCost)+'）\n都市会計の収支 −'+fmt(row.cost)+'（運賃収入なし）\n試算収入 '+fmt(row.revenue)+' / 試算収支 '+fmt(row.balance);content.style.whiteSpace='pre-line';article.append(title,content);if(row.utilization>=.85){const hint=document.createElement('small');hint.textContent='輸送枠が混み合っています。車庫の保有台数と予算を確認し、増車を検討しましょう。';article.append(hint);}list.append(article);}
+  this.root.querySelector('#bus-economics-other')!.textContent='路線未配分の交通維持費 '+fmt(report.otherCost)+' / 交通維持費合計 '+fmt(report.totalCost)+'。共有停留所は路線数、車庫は配備台数で配分します。';
+ }
+}

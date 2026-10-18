@@ -78,7 +78,7 @@ export class LiveInformation {
   private el(id:string){return document.getElementById(id)!;}
   update(c:City, mode:InfoMode, selected:Cell|null, state:{running:boolean;updating:boolean;hidden:boolean}, poses:()=>readonly ObservedVehicle[], now=performance.now(), force=false) {
     const root=this.el('info-live');
-    const active=!state.hidden && ['traffic','water','sewage','environment'].includes(mode);
+    const active=!state.hidden && ['traffic','water','sewage',...(c.environment?[]:['environment'])].includes(mode);
     root.hidden=!active;
     if(!active){this.observation.reset();this.stamp=-Infinity;return;}
     if(!force && now-this.stamp<LIVE_INFORMATION_INTERVAL)return;

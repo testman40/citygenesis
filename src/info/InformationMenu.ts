@@ -1,15 +1,29 @@
 import type {City} from '../simulation/City';import {INFO_MODES,citizenRequests,type InfoMode} from './CityInformation';
 const icon=(path:string)=>'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+path+'"/></svg>';
+export const INFO_GROUPS=[
+ {id:'living',label:'住民・暮らし',tabs:['residents','happiness','requests']},
+ {id:'infrastructure',label:'都市・インフラ',tabs:['demand','power','water','sewage','network','medical','education','fire','police']},
+ {id:'environment',label:'環境',tabs:['environment','air','noise']},
+ {id:'traffic',label:'交通',tabs:['traffic','transit']},
+] as const;
+export function informationGroup(tab:string|null){return INFO_GROUPS.find(g=>(g.tabs as readonly string[]).includes(tab??''))?.id??'living';}
 export const INFO_TABS=[
  {id:'residents',label:'住民・世帯',icon:icon('M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21v-4c0-6 12-6 12 0v4m0-7c4-1 8 1 8 4v3')},
  {id:'happiness',label:'幸福度',icon:icon('M12 21S3 15 3 9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12-9 12Z')},
  {id:'water',label:'水道',icon:icon('M12 2 5 12a8 8 0 1 0 14 0L12 2ZM8 15c0 3 2 4 4 4')},
  {id:'sewage',label:'下水・汚水',icon:icon('M4 5h10v6h6M7 2v6m5 7 3 3 3-3M3 21c3-3 5 3 8 0s5 3 10 0')},
- {id:'environment',label:'水質・環境',icon:icon('M3 17c3-3 5 3 9 0s6 3 9 0M3 21c3-3 5 3 9 0s6 3 9 0M12 2l-4 7a5 5 0 1 0 8 0L12 2Z')},
+ {id:'environment',label:'水質',icon:icon('M3 17c3-3 5 3 9 0s6 3 9 0M3 21c3-3 5 3 9 0s6 3 9 0M12 2l-4 7a5 5 0 1 0 8 0L12 2Z')},
+ {id:'air',label:'大気',icon:icon('M2 8h14c5 0 5-6 1-6M2 13h19M2 18h12c5 0 5 5 1 5')},
+ {id:'noise',label:'騒音',icon:icon('m3 9 4 0 5-5v16l-5-5H3V9Zm13-2c5 2 5 8 0 10m3-13c7 4 7 12 0 16')},
  {id:'traffic',label:'交通',icon:icon('M7 3 3 21m14-18 4 18M12 3v4m0 4v3m0 4v3')},
  {id:'transit',label:'バス・公共交通',icon:icon('M5 17V5c0-3 14-3 14 0v12H5Zm0-7h14M8 17v4m8-4v4M8 13h1m6 0h1')},
  {id:'power',label:'電力',icon:icon('m14 2-9 12h7l-2 8 9-12h-7l2-8Z')},
  {id:'demand',label:'都市需要',icon:icon('M3 21h18M5 17v-5h3v5m3 0V7h3v10m3 0V3h3v14')},
+ {id:'network',label:'道路接続',icon:icon('M3 12h18M12 3v18')},
+ {id:'medical',label:'医療',icon:icon('M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z')},
+ {id:'education',label:'教育',icon:icon('m2 8 10-5 10 5-10 5L2 8Zm4 3v7h12v-7')},
+ {id:'fire',label:'消防',icon:icon('M12 2c8 9 9 12 4 18H8C3 14 6 8 12 2Z')},
+ {id:'police',label:'治安',icon:icon('m12 2 9 4v7c0 4-5 7-9 9-4-2-9-5-9-9V6l9-4Z')},
  {id:'requests',label:'市民要望',icon:icon('M4 3h16v13H9l-5 5V3Zm4 5h8m-8 4h5')},
 ] as const;
 export type InfoTab=typeof INFO_TABS[number]['id'];
@@ -17,7 +31,7 @@ export interface MenuState {tab:InfoTab|'other'|null;mode:InfoMode}
 export const closedMenu=():MenuState=>({tab:null,mode:'normal'});
 export function modeMenu(mode:InfoMode):MenuState {if(mode==='normal')return closedMenu();return {tab:INFO_TABS.some(t=>t.id===mode)?mode as InfoTab:'other',mode};}
 export function toggleMenu(state:MenuState,tab:InfoTab):MenuState {return state.tab===tab?closedMenu():{tab,mode:tab==='requests'||tab==='residents'?'normal':tab};}
-export const INFO_BAR_HTML='<section id="information-toolbar" role="toolbar" aria-label="都市情報ビュー">'+INFO_TABS.map((t,i)=>'<button type="button" data-info-tab="'+t.id+'" aria-label="'+t.label+'" title="'+t.label+'" aria-controls="information-panel" aria-pressed="false" aria-expanded="false" tabindex="'+(i===0?0:-1)+'">'+t.icon+'<span class="info-icon-label">'+(t.id==='transit'?'公共交通':t.label)+'</span>'+(t.id==='requests'?'<span id="info-request-badge" class="info-count">0</span>':'')+'</button>').join('')+'<label class="info-other-label"><span>その他</span><select id="info-other" aria-label="その他の情報ビュー"><option value="">選択</option>'+Object.entries(INFO_MODES).filter(([k])=>k!=='normal'&&!INFO_TABS.some(t=>t.id===k)).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select></label></section>';
+export const INFO_BAR_HTML='<section id="information-toolbar" aria-label="都市情報ビュー"><div class="information-groups" role="toolbar" aria-label="情報の分類">'+INFO_GROUPS.map(g=>'<button type="button" data-info-group="'+g.id+'" aria-controls="information-subviews" aria-pressed="false">'+g.label+'</button>').join('')+'</div><div id="information-subviews" role="toolbar" aria-label="分類内の情報">'+INFO_TABS.map(t=>'<button type="button" data-info-tab="'+t.id+'" aria-label="'+t.label+'" aria-controls="information-panel" aria-pressed="false" aria-expanded="false">'+t.icon+'<span class="info-icon-label">'+t.label+'</span>'+(t.id==='requests'?'<span id="info-request-badge" class="info-count">0</span>':'')+'</button>').join('')+'</div><select id="info-other" hidden aria-label="情報を直接選択"><option value="">選択</option>'+Object.entries(INFO_MODES).filter(([k])=>k!=='normal').map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select></section>';
 const num=(v:number)=>v.toLocaleString('ja-JP',{maximumFractionDigits:1}),pct=(v:number)=>Math.round(v*100)+'%';
 /** Presentation of existing results only. No policy, save or simulation mutations. */
 export function compactInformation(c:City,mode:InfoMode,requestsView=false){
@@ -37,18 +51,19 @@ export class InformationMenu {
  state:MenuState=closedMenu();
  constructor(private changed:(mode:InfoMode)=>void){
   const bar=document.getElementById('information-toolbar')!,panel=document.getElementById('information-panel')!;
-  bar.addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-tab]');if(b)this.commit(toggleMenu(this.state,b.dataset.infoTab as InfoTab));});
+  bar.addEventListener('click',e=>{const group=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-group]');if(group){const g=INFO_GROUPS.find(g=>g.id===group.dataset.infoGroup)!;const tab=g.tabs[0] as InfoTab;this.commit({tab,mode:tab==='residents'?'normal':tab as InfoMode});return;}const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-tab]');if(b)this.commit(toggleMenu(this.state,b.dataset.infoTab as InfoTab));});
   (document.getElementById('info-other') as HTMLSelectElement).onchange=e=>this.openMode((e.target as HTMLSelectElement).value as InfoMode||'normal');
   document.getElementById('info-close')!.onclick=()=>{this.close(true);document.dispatchEvent(new Event('city-info-dismiss'));};
   for(const area of [bar,panel])area.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();this.close(true);document.dispatchEvent(new Event('city-info-dismiss'));}});
-  bar.addEventListener('keydown',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-tab]');if(!b||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const buttons=Array.from(bar.querySelectorAll<HTMLButtonElement>('[data-info-tab]')),index=buttons.indexOf(b),next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(index+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;buttons.forEach((v,i)=>v.tabIndex=i===next?0:-1);buttons[next].focus();});this.paint();
+  bar.addEventListener('keydown',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-info-tab]');if(!b||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const buttons=Array.from(bar.querySelectorAll<HTMLButtonElement>('[data-info-tab]')).filter(b=>!b.hidden),index=buttons.indexOf(b),next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(index+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;buttons.forEach((v,i)=>v.tabIndex=i===next?0:-1);buttons[next].focus();});this.paint();
  }
  private commit(next:MenuState){this.state=next;this.paint();this.changed(next.mode);}
  openMode(mode:InfoMode){this.commit(modeMenu(mode));}
  synchronize(mode:InfoMode){if(mode!==this.state.mode){this.state=modeMenu(mode);this.paint();}}
  close(focus=false){const previous=this.state.tab;this.commit(closedMenu());if(focus&&previous){const b=previous==='other'?document.getElementById('info-other'):document.querySelector<HTMLElement>('[data-info-tab="'+previous+'"]');b?.focus();}}
  private paint(){const panel=document.getElementById('information-panel')!,isOpen=this.state.tab!==null,requests=this.state.tab==='requests',residents=this.state.tab==='residents';document.getElementById('resident-panel')!.hidden=!residents;panel.hidden=!isOpen;panel.dataset.view=this.state.tab??'closed';document.body.classList.toggle('info-open',isOpen);if(isOpen)(document.getElementById('management-panel') as HTMLDetailsElement).open=false;
-  const selected=INFO_TABS.findIndex(t=>t.id===this.state.tab);document.querySelectorAll<HTMLButtonElement>('[data-info-tab]').forEach((b,i)=>{const active=b.dataset.infoTab===this.state.tab;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-expanded',String(active));b.tabIndex=i===(selected<0?0:selected)?0:-1;});
+  const group=informationGroup(this.state.tab);document.querySelectorAll<HTMLButtonElement>('[data-info-group]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.infoGroup===group)));document.querySelectorAll<HTMLButtonElement>('[data-info-tab]').forEach(b=>b.hidden=informationGroup(b.dataset.infoTab??null)!==group);
+  const selected=INFO_TABS.findIndex(t=>t.id===this.state.tab);document.querySelectorAll<HTMLButtonElement>('[data-info-tab]').forEach((b,i)=>{const active=b.dataset.infoTab===this.state.tab;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-expanded',String(active));b.tabIndex=active?0:b.hidden?-1:0;});
   (document.getElementById('overlay') as HTMLSelectElement).value=this.state.mode;const other=document.getElementById('info-other') as HTMLSelectElement;other.value=this.state.tab==='other'?this.state.mode:'';other.classList.toggle('active',this.state.tab==='other');document.getElementById('info-core')!.hidden=requests||residents;document.getElementById('info-details')!.hidden=requests||residents;const list=document.getElementById('citizen-requests') as HTMLDetailsElement;list.hidden=!requests;if(requests)list.open=true;
  }
 }

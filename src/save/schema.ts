@@ -1,3 +1,5 @@
+import {validateEnvironment} from '../environment/validate';
+import type {EnvironmentState} from '../environment/Environment';
 import {bayCells} from '../transit/BusBays';
 import {ROAD_KINDS} from '../roads/profiles';
 import {isRoadKind,type RoadKind} from '../roads/profiles';
@@ -20,7 +22,7 @@ import { BALANCE, type Balance } from '../simulation/config';
 import type { TrafficState } from '../traffic/Traffic';
 import type { Speed } from '../simulation/Clock';
 export interface SavedCell {x:number;z:number;road:boolean;zone:number;level:number;age:number;facility:number;decline:number}
-export interface CityState {residents?:ResidentState;waterUtility?:WaterUtilityState;sanitation?:SanitationState;energy?:EnergyState;hydrology?:HydrologyState;management?:ManagementState;budget?:BudgetState;size:number;wellness?:WellnessState;safety?:SafetyState;transit?:TransitState;traffic?:TrafficState;developmentOrder:number[];taxRate:number;config:Balance;cells:SavedCell[];month:number;population:number;funds:number;tax:number;maintenance:number;balance:number;constructionSpending:number}
+export interface CityState {environment?:EnvironmentState;residents?:ResidentState;waterUtility?:WaterUtilityState;sanitation?:SanitationState;energy?:EnergyState;hydrology?:HydrologyState;management?:ManagementState;budget?:BudgetState;size:number;wellness?:WellnessState;safety?:SafetyState;transit?:TransitState;traffic?:TrafficState;developmentOrder:number[];taxRate:number;config:Balance;cells:SavedCell[];month:number;population:number;funds:number;tax:number;maintenance:number;balance:number;constructionSpending:number}
 export interface SaveData {version:2|3|4|5;savedAt:string;city:CityState;clock:{speed:Speed;accumulated:number}}
 const obj=(v:unknown):Record<string,unknown>=>{if(!v||typeof v!=='object'||Array.isArray(v))throw new Error('保存データの形式が不正です');return v as Record<string,unknown>;};
 const number=(v:unknown,min:number,max:number,integer=false):number=>{if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max||(integer&&!Number.isInteger(v)))throw new Error('保存データの数値が不正です');return v;};
@@ -82,6 +84,7 @@ export function validateSave(input:unknown):SaveData {
  if(c.budget!==undefined)city.budget=validateBudget(c.budget);
  const occupiedBay=new Set<number>(),occupied=new Set([...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(t=>t.id),...(city.wellness?.facilities??[]).map(t=>t.id),...(city.transit?.infrastructure?.depots??[]).map(t=>t.id),...(city.energy?.plants??[]).map(t=>t.id),...(city.sanitation?.plants??[]).map(t=>t.id),...(city.waterUtility?.externals??[]),...(city.hydrology?.river??[]),...(city.hydrology?.outfalls??[])]);
  for(const stop of city.transit?.stops??[]){if(!stop.bay)continue;const kind=traffic.busOnly?.includes(stop.road)?'bus':traffic.roads?.find(([id])=>id===stop.road)?.[1]??'general',profile=ROAD_KINDS[kind];if(profile.lanes<2||!profile.walk||!cells.some(t=>t.road&&t.z*size+t.x===stop.road))throw Error('待避スペースの道路種別が不正です');for(const c of bayCells(stop.road,size,stop.heading??1)){const id=c.z*size+c.x;if(c.x<0||c.z<0||c.x>=size||c.z>=size||occupied.has(id)||occupiedBay.has(id))throw Error('待避スペースが空き地に収まりません');occupiedBay.add(id);}}
+ if(c.environment!==undefined){if(s.version!==4&&s.version!==5)throw Error('環境データには保存バージョン4/5が必要です');city.environment=validateEnvironment(c.environment,size,city.month,city.hydrology?.river??[],new Set(cells.filter(t=>t.zone===1&&t.level>0).map(t=>t.z*size+t.x)));}
  const k=obj(s.clock);if(![0,1,2,4].includes(k.speed as number))throw new Error('時間速度が不正です');
  const clock={speed:k.speed as Speed,accumulated:number(k.accumulated,0,config.stepSeconds)};
  if(clock.accumulated>=config.stepSeconds)throw new Error('時間の端数が不正です');

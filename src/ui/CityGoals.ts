@@ -1,3 +1,4 @@
+import {ENVIRONMENT_GOALS} from '../environment/Environment';
 import type {City} from '../simulation/City';
 import {STAGES} from '../economy/Lifecycle';
 export interface CityGoal {id:string;title:string;detail:string;progress:number;done:boolean}
@@ -8,7 +9,7 @@ export function cityGoals(city:City):CityGoal[]{
   {id:'employment',title:'仕事のある街',detail:'人口20人以上・就業率80%以上',progress:Math.min(1,city.population/20,m.employment/.8),done:city.population>=20&&m.employment>=.8},
   {id:'surplus',title:'黒字の第一歩',detail:'月次決算で黒字・資金0以上',progress:city.month>0&&city.balance>0&&city.funds>=0?1:0,done:city.month>0&&city.balance>0&&city.funds>=0},
  ];
- return [...simple,...STAGES.slice(1).map((stage,index)=>{
+ return [...simple,...(city.environment?ENVIRONMENT_GOALS.map(g=>{const e=city.environment!,done=e.completed.has(g.id),streak=g.id==='pop100'||g.id==='pop3000'?(e.streaks.get('surplus')??0):(e.streaks.get(g.id)??0),needed=g.id==='pop3000'?6:3;return {id:'environment-'+g.id,title:g.title,detail:g.detail+' / 現在：人口 '+city.population+'・給水 '+Math.round(city.waterRatio*100)+'%・就業 '+Math.round(m.employment*100)+'%'+(g.id==='water'?'・残留率 '+Math.round(((city.waterUtility?.residual??city.hydrology?.untreated??0)/Math.max(1,city.waterUtility?.generated??city.hydrology?.discharged??0))*100)+'%':g.id==='air'?'・住宅大気 '+e.residential.air.toFixed(1):g.id==='quiet'?'・住宅騒音 '+e.residential.noise.toFixed(1):g.id==='recovery'?'・通勤 '+city.traffic.averageMinutes.toFixed(1)+'分 / 比較元 '+e.trafficBaseline.toFixed(1)+'分':'')+' / '+g.reward+(done?'（獲得済み）':' / 継続 '+streak+'/'+needed+'か月'),progress:done?1:Math.min(.99,city.population/g.population,streak?streak/needed:.25),done};}):[]),...STAGES.slice(1).map((stage,index)=>{
   const reached=(state?.highest??0)>=index+1;
   const progress=Math.max(0,Math.min(1,city.population/stage.population,m.service/stage.service,city.funds>=0?1:0,city.balance>=0?1:0));
   return {id:'stage-'+(index+1),title:stage.name+'への発展',detail:'人口'+stage.population.toLocaleString('ja-JP')+'人・サービス'+Math.round(stage.service*100)+'%・資金と収支0以上'+(state?'を3か月維持':''),progress:reached?1:progress,done:reached||(!state&&progress===1)};
@@ -25,7 +26,7 @@ export class CityGoalsPanel {
   const achieved=goals.filter(g=>g.done&&!this.seen.has(g.id));
   if(achieved.length){achieved.forEach(g=>this.seen.add(g.id));const toast=document.getElementById('goal-toast')!;toast.textContent='達成！ '+achieved.map(g=>g.title).join('・');toast.hidden=false;clearTimeout(this.timer);this.timer=setTimeout(()=>toast.hidden=true,5000);document.dispatchEvent(new Event('city-goal-achieved'));}
   const signature=JSON.stringify(goals);if(signature===this.signature)return;this.signature=signature;this.root.replaceChildren();
-  const intro=document.createElement('p');intro.textContent='街の指標から次の目標を確認しましょう。達成すると通知が届きます。';this.root.append(intro);
+  const intro=document.createElement('p');const next=ENVIRONMENT_GOALS.find(g=>(city.environment?.highestPopulation??city.population)<g.population);intro.textContent='街の指標から次の目標を確認しましょう。'+(next?'次の人口段階 '+next.population+'人まで、あと'+Math.max(0,next.population-city.population)+'人。':'')+'称号は一度だけ獲得し、人口減少後も残ります。';this.root.append(intro);
   for(const goal of goals){const article=document.createElement('article');article.className='city-goal'+(goal.done?' achieved':'');const title=document.createElement('strong');title.textContent=(goal.done?'✓ ':'○ ')+goal.title;const detail=document.createElement('p');detail.textContent=goal.detail;const bar=document.createElement('progress');bar.max=1;bar.value=goal.progress;bar.setAttribute('aria-label',goal.title);const value=document.createElement('small');value.textContent=goal.done?'達成済み':Math.floor(goal.progress*100)+'%';article.append(title,detail,bar,value);this.root.append(article);}
  }
 }

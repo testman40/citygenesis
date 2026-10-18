@@ -29,7 +29,7 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
    const id=z*city.size+x,roadProfile=city.network.profile(id),load=city.traffic.congestion(id);
    const response=overlay==='fire'||overlay==='police'?city.safety.responseAt(id,overlay):null;
    const civic=overlay==='medical'?city.wellness.roadCoverage(id,'medical'):overlay==='education'?city.wellness.roadCoverage(id,'elementary')*.6+city.wellness.roadCoverage(id,'highSchool')*.4:0;
-   const sewer=overlay==='sewage'&&city.sanitation?(hydro?.treatmentAt(id).ratio??0):0;const color=overlay==='normal'?(city.network.busOnly.has(id)?'#386f72':ROAD_VISUAL.asphaltColor):INFO_STYLE[informationAt(city,owner,overlay).state].color;
+   const sewer=overlay==='sewage'&&city.sanitation?(hydro?.treatmentAt(id).ratio??0):0;const color=(overlay==='air'||overlay==='noise'||overlay==='environment')?INFO_STYLE.neutral.color:overlay==='normal'?(city.network.busOnly.has(id)?'#386f72':ROAD_VISUAL.asphaltColor):INFO_STYLE[informationAt(city,owner,overlay).state].color;
    add('surface',px,.025,pz,1,.045,1,'#d5d5c5');add('surface',px,.054,pz,access[1]||access[3]?1:roadProfile.width,.04,access[0]||access[2]?1:roadProfile.width,color);
    const direction=city.network.directions.get(id);if(direction!==undefined){const angle=[Math.PI,Math.PI/2,0,-Math.PI/2][direction];for(const side of [-1,1])mark('detail',px+Math.sin(angle)*.06+Math.cos(angle)*side*.06,.09,pz+Math.cos(angle)*.06-Math.sin(angle)*side*.06,.025,.012,.16,'#dce9cf',angle+side*.6);}
    for(let n=0;n<4;n++){if(!access[n])continue;
@@ -50,7 +50,7 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
    const medical=overlay==='medical'?(welfare?.medical??Math.max(0,...city.network.adjacent(owner).map(r=>city.wellness.roadCoverage(r,'medical')))):0;
    const education=overlay==='education'?(welfare?(welfare.elementary*.6+welfare.highSchool*.4):Math.max(0,...city.network.adjacent(owner).map(r=>city.wellness.roadCoverage(r,'elementary')*.6+city.wellness.roadCoverage(r,'highSchool')*.4))):0;
    const cover=overlay==='medical'?medical:education;
-   const sewer=overlay==='sewage'&&city.sanitation?(hydro?.treatmentAt(owner).ratio??0):0;const tint=overlay==='normal'?(!t.networkConnected?'#c08b7c':t.zone?palette[t.zone]:'#bac8bd'):INFO_STYLE[informationAt(city,owner,overlay).state].color;
+   const sewer=overlay==='sewage'&&city.sanitation?(hydro?.treatmentAt(owner).ratio??0):0;const tint=(overlay==='air'||overlay==='noise'||overlay==='environment')?INFO_STYLE.neutral.color:overlay==='normal'?(!t.networkConnected?'#c08b7c':t.zone?palette[t.zone]:'#bac8bd'):INFO_STYLE[informationAt(city,owner,overlay).state].color;
    if(t.level||t.facility)add('surface',px,.037,pz,.96,.065,.96,'#d6d9cc');else mark('surface',px,.037,pz,.96,.065,.96,tint);
    // Keep category borders even when disconnected; the fill still indicates isolation.
    const border=overlay==='normal'&&t.zone?palette[t.zone]:tint;

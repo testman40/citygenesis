@@ -1,3 +1,5 @@
+import {CityEnvironment,type EnvironmentInputs} from '../environment/Environment';
+import {environmentInputs} from '../environment/CityInputs';
 import {bayCells} from '../transit/BusBays';
 import {Residents,type Place} from '../residents/Residents';
 import {ParkEffects,PARK_EFFECTS} from '../scenery/ParkEffects';
@@ -35,6 +37,11 @@ export class City {
   private bulkDue(){let count=0;for(const {t,chunk,i} of this.censusRows())if((t.level>0&&chunk.decline[i]>=this.config.declineMonths-1)||(t.level<this.config.maxLevel&&chunk.ages[i]>=this.config.growthMonths-1))if(++count>=128)return true;return false;}
   private async stepInWorker(options:{budgetMs?:number;yieldTask?:()=>Promise<void>;signal?:AbortSignal}){const state=this.snapshot(),started=performance.now(),revision=this.traffic.solveRevision,lastMessage=this.lastMessage;this.updating=true;const profile={cpuMs:0,maxSliceMs:0,slices:0,elapsedMs:0};try{const result=await City.workerExecutor!(state,options.signal),restored=await City.fromStateAsync(result.state,{...options,profile});if(options.signal?.aborted)throw new DOMException('都市更新を取り消しました','AbortError');if(restored.size!==this.size)throw new Error('都市更新のサイズが不正です');Object.assign(this,restored);this.updating=true;this.lastMessage=lastMessage;this.traffic.solveRevision=revision+1;Object.assign(this.stepProfile,{workMs:profile.cpuMs,maxSliceMs:profile.maxSliceMs,slices:profile.slices,workerCpuMs:result.cpuMs,elapsedMs:performance.now()-started});}catch(error){this.abandoned=true;throw error;}finally{this.updating=false;}}
 
+  environment?:CityEnvironment;private environmentInputRevision=0;private environmentCache:EnvironmentInputs|undefined;
+  environmentInputs(){const key=[this.environmentInputRevision,this.network.revision,this.traffic.solveRevision,this.month,this.population,Math.floor(this.residents?.state.time??12)].join(':');if(this.environmentCache?.key!==key)this.environmentCache=environmentInputs(this,key,this.censusRows().map(r=>({id:r.c.z*this.size+r.c.x,zone:r.t.zone,level:r.t.level,connected:r.t.networkConnected})),[...this.facilities.values()].map(c=>({id:c.z*this.size+c.x,kind:this.tile(c).facility!})).concat([...(this.energy?.plants??[])].map(([id,kind])=>({id,kind}))));return this.environmentCache;}
+  enableEnvironment(){if(!this.environment)this.environment=new CityEnvironment(this.size,this.month);this.environment.sync(this.environmentInputs());}
+  advanceEnvironment(seconds:number){if(this.updating||this.abandoned||seconds<=0)return;this.enableEnvironment();this.environment!.advance(seconds,this.environmentInputs());}
+  private environmentMonth(){if(!this.environment)return;this.environment.sync(this.environmentInputs());this.environment.observeMonth(this.month,{population:this.population,water:this.waterRatio,employment:this.workforce?this.employed/this.workforce:1,balance:this.balance,walkers:this.transit.walkers,cyclists:this.transit.cyclists,riders:this.transit.riders,congestion:this.traffic.congestionRate,minutes:this.traffic.averageMinutes,generated:this.waterUtility?.generated??this.hydrology?.discharged??0,residual:this.waterUtility?.residual??this.hydrology?.untreated??0});}
   residents?:Residents;
   get workforce(){return this.residents?.workforce??Math.floor(this.population*this.config.workforceRatio);}
   residentHomes(){return this.censusRows().filter(r=>r.t.zone==='residential'&&r.t.level>0).map(r=>({id:r.c.z*this.size+r.c.x,capacity:r.t.level*this.config.residentsPerLevel}));}
@@ -104,7 +111,7 @@ export class City {
     for(const [key,chunk] of this.chunks){const [cx,cz]=key.split(',').map(Number);for(let i=0;i<256;i++){
       if(chunk.roads[i]||chunk.zones[i]||chunk.facilities[i])cells.push({x:cx*16+i%16,z:cz*16+Math.floor(i/16),road:chunk.roads[i]===1,zone:chunk.zones[i],level:chunk.levels[i],age:chunk.ages[i],facility:chunk.facilities[i],decline:chunk.decline[i]});
     }}
-    return {...(this.residents?{residents:this.residents.snapshot()}:{}),...(this.waterUtility?{waterUtility:this.waterUtility.snapshot()}:{}),...(this.sanitation?{sanitation:this.sanitation.snapshot()}:{}),...(this.energy?{energy:this.energy.snapshot()}:{}),...(this.hydrology?{hydrology:this.hydrology.snapshot()}:{}),...(this.management?{management:structuredClone(this.management)}:{}),...(this.budget.changed?{budget:this.budget.snapshot()}:{}),...(this.wellness.active?{wellness:this.wellness.snapshot()}:{}),...(this.safety.enabled?{safety:this.safety.snapshot()}:{}),...(this.transit.hasState?{transit:this.transit.snapshot()}:{}),traffic:this.traffic.snapshot(),developmentOrder:[...this.zoned.values()].map(c=>c.z*this.size+c.x),taxRate:this.taxRate,size:this.size,config:{...this.config},cells,month:this.month,population:this.population,funds:this.funds,tax:this.tax,maintenance:this.maintenance,balance:this.balance,constructionSpending:this.constructionSpending};
+    return {...(this.environment?{environment:this.environment.snapshot()}:{}),...(this.residents?{residents:this.residents.snapshot()}:{}),...(this.waterUtility?{waterUtility:this.waterUtility.snapshot()}:{}),...(this.sanitation?{sanitation:this.sanitation.snapshot()}:{}),...(this.energy?{energy:this.energy.snapshot()}:{}),...(this.hydrology?{hydrology:this.hydrology.snapshot()}:{}),...(this.management?{management:structuredClone(this.management)}:{}),...(this.budget.changed?{budget:this.budget.snapshot()}:{}),...(this.wellness.active?{wellness:this.wellness.snapshot()}:{}),...(this.safety.enabled?{safety:this.safety.snapshot()}:{}),...(this.transit.hasState?{transit:this.transit.snapshot()}:{}),traffic:this.traffic.snapshot(),developmentOrder:[...this.zoned.values()].map(c=>c.z*this.size+c.x),taxRate:this.taxRate,size:this.size,config:{...this.config},cells,month:this.month,population:this.population,funds:this.funds,tax:this.tax,maintenance:this.maintenance,balance:this.balance,constructionSpending:this.constructionSpending};
   }
   /** Compare committed states without involving rendering. Yield per chunk for large edits. */
   *roadDirtySteps(next:City):Generator<void> {
@@ -159,6 +166,7 @@ export class City {
     progress('道路ネットワーク',.4);yield;const roads=state.cells.filter(t=>t.road).map(t=>t.z*city.size+t.x);if(city.size>=256)yield*city.network.loadSteps(roads);else city.network.load(roads);
     yield;progress('施設と集計',.45);city.zoned.clear();for(const id of state.developmentOrder)city.zoned.set(`${id%city.size},${Math.floor(id/city.size)}`,{x:id%city.size,z:Math.floor(id/city.size)});
     for(const key of ['month','population','funds','tax','maintenance','balance','constructionSpending'] as const)city[key]=state[key];
+    if(state.environment)city.environment=CityEnvironment.restore(city.size,state.environment);
     if(state.residents)city.residents=new Residents(state.residents);
     if(state.waterUtility)city.waterUtility=WaterUtility.restore(state.waterUtility);if(state.sanitation)city.sanitation=Sanitation.restore(state.sanitation);if(state.energy)city.energy=Energy.restore(state.energy);if(state.hydrology)city.hydrology=Hydrology.restore(city.size,state.hydrology);if(state.budget)city.budget.restore(state.budget);city.applyBudget();if(state.wellness)city.wellness.restore(state.wellness);if(state.safety)city.safety.restore(state.safety);if(state.transit)city.transit.restore(state.transit,false);if(configure){configure(city);city.transit.invalidate();}yield* city.transit.refreshSteps();city.taxRate=state.taxRate;if(state.traffic)city.traffic.restore(state.traffic);const population=city.population;progress('交通・公共サービス',.55);yield;yield* city.recountSteps();if(!allowPopulationChange&&city.population!==population)throw new Error('人口が住宅容量を超えています');
     return city;
@@ -287,6 +295,7 @@ export class City {
   removeBusRoute(id:number){if(this.updating||this.abandoned)throw new Error('都市更新中の編集はキューを使用してください');this.transit.removeRoute(id);this.recount();}
   private recount(){const iterator=this.recountSteps(false);while(!iterator.next().done){}}
   private *recountSteps(sliced=true):Generator<void> {
+    this.environmentInputRevision++;
     const rows=this.censusRows();
     const oldPower=this.powerRatio,oldWater=this.waterRatio;
     this.sceneryMaintenance=0;this.powerPlants=0;this.waterPlants=0;this.powerSupply=this.roadCount&&(this.energy?.importEnabled??true)?this.config.starterPower:0;this.waterSupply=this.roadCount?this.config.starterWater:0;
@@ -356,6 +365,7 @@ export class City {
     }
     this.satisfaction=Math.max(0,this.satisfaction-Math.round(this.wellness.penalty));
     if(this.waterUtility)this.satisfaction=Math.max(0,this.satisfaction-Math.round(this.waterUtility.penalty));
+    if(this.environment)this.satisfaction=Math.max(0,this.satisfaction-Math.round(this.environment.penalty));
     this.sceneryBonus=this.parks.average(homes);this.satisfaction=Math.min(100,Math.round(this.satisfaction+this.sceneryBonus));
     const clamp=(n:number)=>Math.round(Math.max(0,Math.min(100,n)));
     this.demand.residential=clamp(this.config.housingBaseDemand+this.sceneryBonus*PARK_EFFECTS.demandPerPoint+this.jobs*this.config.housingJobWeight-this.population*this.config.housingPopulationWeight+(this.wellness.educationEnabled?this.wellness.education*this.wellness.config.housingEducationDemand:0));
@@ -371,6 +381,7 @@ export class City {
       if(this.month>m.lastDemandMonth){for(const k of ZONES)m.demand[k]=smoothDemand(m.demand[k],this.projectedDemand[k],p);m.lastDemandMonth=this.month;}
       for(const k of ZONES)this.demand[k]=Math.round(m.demand[k]);
     }
+    if(this.environment)this.environment.sync(this.environmentInputs());
   }
   /** Fixed, deterministic monthly update. Never called by the render adapter. */
   setRouting(mode:"distance"|"time"){if(this.updating||this.abandoned)throw new Error("都市更新中はキューを使用してください");this.traffic.routing.setMode(mode,this.month);this.recount();}
@@ -394,7 +405,7 @@ export class City {
   }
   private migrate(){
     // Aggregated households: no individual citizen objects.
-    const inflow=this.satisfaction>=this.config.growthSatisfaction?Math.floor(this.config.migrationPerMonth*this.waterRatio*this.wellness.migrationFactor*(this.waterUtility?.migrationFactor??1)):0,life=this.management?.lifecycle,workers=this.workforce;
+    const baseInflow=this.satisfaction>=this.config.growthSatisfaction?Math.floor(this.config.migrationPerMonth*this.waterRatio*this.wellness.migrationFactor*(this.waterUtility?.migrationFactor??1)):0,inflow=Math.round(baseInflow*(1-(this.environment?.penalty??0)*.01)),life=this.management?.lifecycle,workers=this.workforce;
     if(life?.mode==='evolve'&&life.settlementPending===undefined&&this.population===0&&life.highest===0&&life.history.length===this.month-1&&(this.month===1||life.history[0]?.month===1)&&life.history.every(p=>p.population===0))life.settlementPending=true;
     if(life?.settlementPending&&this.jobs>0)life.settlementPending=false;
     const delta=life?.settlementPending?Math.max(0,Math.min(inflow,this.config.residentsPerLevel-this.population)):life?.mode==='evolve'?populationDelta(life,this.population,workers?Math.min(1,this.employed/workers):1,this.satisfaction,this.config.growthSatisfaction,this.jobs>0?inflow:0):inflow;
@@ -410,11 +421,11 @@ export class City {
     this.funds=Math.round((this.funds+this.balance-repayment)*100)/100;
     const residentTax=money(this.population*this.config.residentTax*this.powerRatio*this.taxRate);this.lastLedger={month:this.month,residentTax,jobTax:money(this.tax-residentTax),tax:this.tax,costs,maintenance:this.maintenance,construction:this.constructionSpending,repayment,balance:this.balance,cashDelta:money(this.balance-this.constructionSpending-repayment),funds:this.funds,debt:this.management?.debt??0};if(this.management)this.management.ledger=this.lastLedger;
   }
-  private finishMonth(){this.safetyDeferred=false;this.levelsCurrent=false;this.recount();if(this.wellness.active){this.wellness.advance(this.month,this.population);this.recount();}this.migrate();this.recount();this.account();this.recordHistory();}
+  private finishMonth(){this.safetyDeferred=false;this.levelsCurrent=false;this.recount();if(this.wellness.active){this.wellness.advance(this.month,this.population);this.recount();}this.migrate();this.recount();this.account();this.recordHistory();this.environmentMonth();}
   private *monthlyUpdate():Generator<void>{
     this.traffic.allowRebalance=true;this.month++;this.budget.advance();this.applyBudget();yield* this.recountSteps();this.safetyDeferred=true;this.levelsCurrent=true;this.constructionSpending=0;
     for(const row of this.censusRows()){if(this.updateBuilding(row))yield* this.recountSteps();yield;}
-    this.safetyDeferred=false;this.levelsCurrent=false;yield* this.recountSteps();if(this.wellness.active){this.wellness.advance(this.month,this.population);yield* this.recountSteps();}this.migrate();yield* this.recountSteps();this.account();this.recordHistory();
+    this.safetyDeferred=false;this.levelsCurrent=false;yield* this.recountSteps();if(this.wellness.active){this.wellness.advance(this.month,this.population);yield* this.recountSteps();}this.migrate();yield* this.recountSteps();this.account();this.recordHistory();this.environmentMonth();
   }
   private *routingUpdate(mode:'distance'|'time'):Generator<void>{this.traffic.routing.setMode(mode,this.month);yield* this.recountSteps();}
   /** Conservative forecast: the normal fast path stays synchronous. */

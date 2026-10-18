@@ -1,7 +1,12 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>環境・都市情報拡張版</strong></p>
+<p class="updates-current">表示中の版：<strong>都市成長・施設拡張版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-18：都市の成長と解放施設</h3>
+<ul><li><strong>都市の成長画面</strong> — 開発ツリー・都市段階・課題と実績を切り替え、解放条件・費用・定員を確認できます。上部のレベル表示からも開けます。</li>
+<li><strong>レベルで新施設を解放</strong> — Lv2で図書館、Lv3で大学、Lv4で総合医療センター、Lv5で研究教育センター。既存の医療・教育サービスに定員を追加し、道路接続と予算が効果を左右します。</li>
+<li><strong>次の一手を明確に</strong> — 人口・サービス・資金・収支と継続月数を都市段階で確認。解放した施設から建設ツールを選び、地図で配置します。</li></ul>
+<p class="workspace-tip">既存施設は引き続き利用可能。都市発展モデルでは最高到達段階、従来都市では記録済み最高人口を使います。新施設も保存・撤去・建設の取り消しに対応。施設は既存の基礎教育・高等教育・医療のネットワークを使い、研究ポイントは追加しません。</p></article>
 <article class="update-entry"><h3>2026-10-18：環境と都市情報を拡張</h3>
 <ul><li><strong>情報ビューを4分類に</strong> — 住民・暮らし、都市・インフラ、環境、交通から選びます。</li>
 <li><strong>水質・大気・騒音</strong> — 河川の汚れの流下、排出源と風、交通需要や速度による騒音をゲーム時間で計算し、地図へ表示します。</li>

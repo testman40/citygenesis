@@ -3,12 +3,13 @@ import type {City,Tool} from '../simulation/City';
 import {nextActions,tutorialSteps,type GuideAction} from './PlayGuide';
 import {toolIcon} from '../Presentation';
 type Category='build'|'info'|'transit'|'manage'|'save'|'help'|'updates'|'goals'|'audio';
-const titles:Record<Category,string>={build:'建設',info:'都市情報',transit:'公共交通',manage:'経営・施設',save:'保存・都市切替',help:'遊び方',updates:'アップデート履歴',goals:'発展目標',audio:'音の設定'};
+const titles:Record<Category,string>={build:'建設',info:'都市情報',transit:'公共交通',manage:'経営・施設',save:'保存・都市切替',help:'遊び方',updates:'アップデート履歴',goals:'都市の成長',audio:'音の設定'};
 const element=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id)! as T;
 const tools:Array<[string,Array<[Tool,string]>]>=[
  ['街の基本',[['road','道路'],['bridge','橋'],['erase','撤去'],['residential','住宅'],['commercial','商業'],['industrial','工業']]],
  ['電力・給排水',[['power','発電所'],['wind','風力'],['solar','太陽光'],['externalWater','外部水道'],['water','給水施設'],['sewage','下水処理'],['advancedSewage','高度下水処理'],['pipe','上下水道管'],['pipe-remove','管撤去'],['outfall','排水口']]],
  ['公共サービス',[['clinic','診療所'],['hospital','病院'],['elementary','小学校'],['highSchool','高校'],['fire','消防署'],['police','警察署']]],
+ ['レベル解放施設',[['library','図書館'],['university','大学'],['medicalCenter','総合医療センター'],['researchCampus','研究教育センター']]],
  ['公園・街の景観',[['park','公園'],['plaza','広場']]],
  ['バス',[['depot','車庫'],['bus-stop','停留所'],['bus-remove','停留所撤去']]],
 ];

@@ -204,3 +204,60 @@ body[data-workspace]:not([data-workspace=""]) #app #road-panel{display:none}
 #app .information-groups button.ui-control{display:grid;place-items:center;min-height:44px;padding:6px 2px;font-size:11px;line-height:1.4}#app .information-groups button svg{display:none}#app .information-groups button span{white-space:normal;overflow-wrap:normal;word-break:normal}#app #workspace-info .info-heading{display:none}
 
 #app .environment-location{cursor:pointer}#app .environment-location:focus{outline:none}#app .environment-location:focus rect{stroke:#205a91;stroke-width:3}#app #information-panel:is([data-view="environment"],[data-view="air"],[data-view="noise"]) :is(#info-selection,#info-problem,#info-advice){display:none}
+
+/* Optional growth workspace: navy blueprint, mint unlocks, brass milestones. */
+:root{--growth-bg:#172f3b;--growth-panel:#203e4d;--growth-border:#54717d;--growth-text:#f1f7f6;--growth-muted:#b8cfd4;--growth-mint:#91e2cc;--growth-gold:#f1cf89}
+#app #city-growth-open{pointer-events:auto;font-size:12px;min-height:34px;padding:5px 9px;border:1px solid #296d5b;color:#14533f;background:#e2f5ec;white-space:nowrap}
+body[data-workspace="goals"] #app #workspace-drawer{width:min(1060px,calc(100vw - 36px));max-height:calc(100dvh - 205px);background:var(--growth-bg);color:var(--growth-text);border-color:var(--growth-border);padding-bottom:18px}
+body[data-workspace="goals"] #app .workspace-heading{background:var(--growth-bg);border-color:var(--growth-border);color:var(--growth-text)}
+body[data-workspace="goals"] #app #workspace-title{color:var(--growth-text)}
+body[data-workspace="goals"] #app #workspace-close{color:var(--growth-text);background:var(--growth-panel);border-color:var(--growth-border)}
+#app #workspace-goals button{background:#294958;border:1px solid var(--growth-border);color:var(--growth-text);box-shadow:none}
+#app #workspace-goals button:focus-visible{outline:3px solid var(--growth-gold);outline-offset:3px}
+#app .growth-tabs{display:flex;gap:6px;padding:10px 0;flex-wrap:wrap;border-bottom:1px solid var(--growth-border)}
+#app .growth-tabs button{flex:1;min-height:44px;padding:8px;white-space:nowrap}
+#app #workspace-goals .growth-tabs button[aria-selected="true"]{background:#216e70;border-color:var(--growth-mint);color:#fff}
+#app .growth-summary{display:grid;grid-template-columns:auto 1fr 120px;gap:14px;align-items:center;padding:18px 0}
+#app #growth-level{border:1px solid var(--growth-gold);color:var(--growth-gold);border-radius:12px;padding:12px;font-size:23px;font-weight:800}
+#app #growth-stage{font-size:17px}#app #growth-next{font-size:12px;color:var(--growth-muted);margin:5px 0 0}
+#app #growth-progress{width:100%;height:9px;accent-color:var(--growth-mint)}
+#app .growth-categories{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+#app .growth-categories button{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 13px}
+#app #workspace-goals .growth-categories button[aria-pressed="true"]{color:var(--growth-mint);border-color:var(--growth-mint);background:#224e55}
+#app .growth-content{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:14px;align-items:start}
+#app .growth-tree-area{min-width:0;border:1px solid var(--growth-border);border-radius:12px;background:#193541}
+#app .growth-tree-hint{padding:10px 12px;margin:0;color:var(--growth-muted);font-size:11px}
+#app .growth-tree-scroll{overflow-x:auto;padding:0 12px 16px;scrollbar-color:#82b6bb #1a3440;scrollbar-width:thin}
+#app #growth-tree{display:grid;grid-template-columns:repeat(5,minmax(110px,1fr));min-width:600px;min-height:300px;gap:6px}
+#app .growth-column{background:linear-gradient(#29475488,#34536355);border-radius:6px;min-width:0}
+#app .growth-column h3{font-size:12px;text-align:center;color:var(--growth-gold);padding:12px 4px;margin:0;border-bottom:1px solid #66848a55}
+#app .growth-column h3 span{display:block;font-size:10px;color:var(--growth-muted);margin-top:5px}
+#app .growth-column>div{position:relative;display:flex;flex-direction:column;gap:16px;padding:20px 5px;min-height:220px}
+#app .growth-column>div::before{content:'';position:absolute;left:-4px;right:-4px;top:60px;height:2px;background:#739ca7;pointer-events:none}
+#app #workspace-goals [data-growth-node]{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;width:100%;min-height:125px;padding:10px 3px;background:#244451}
+#app .growth-node-icon{display:grid;place-items:center;width:48px;height:48px;border:2px solid #8aa6af;border-radius:50%;background:#1b3441}
+#app .growth-node-icon svg{width:27px;height:27px}#app [data-growth-node] strong{font-size:12px}#app .growth-node-status{font-size:10px;color:var(--growth-muted)}
+#app #workspace-goals [data-growth-node][data-unlocked="true"]{border-color:#67ab9c}
+#app [data-growth-node][data-unlocked="true"] .growth-node-icon{background:#3c7e7b;border-color:var(--growth-mint);color:#e3fff4}
+#app #workspace-goals [data-growth-node][aria-pressed="true"]{outline:2px solid var(--growth-gold);outline-offset:1px}
+#app .growth-connector{position:relative;text-align:center;line-height:80px;color:#a0bec4}
+#app #growth-detail{border:1px solid var(--growth-border);border-radius:12px;background:var(--growth-panel);padding:16px;min-width:0}
+#app .growth-detail-icon{display:grid;place-items:center;background:#18313d;border-radius:10px;width:58px;height:58px;color:var(--growth-mint)}
+#app .growth-detail-icon svg{width:36px;height:36px}#app .growth-eyebrow{color:var(--growth-gold);font-size:10px;letter-spacing:1px}
+#app #growth-detail h3{font-size:20px;margin:5px 0 12px}#app #growth-detail p{color:var(--growth-muted);font-size:12px}
+#app .growth-state{font-size:12px;color:#e1c6a9}#app .growth-state.is-open{color:var(--growth-mint)}
+#app #growth-detail dl{display:grid;gap:9px;border-block:1px solid var(--growth-border);padding:14px 0}
+#app #growth-detail dl>div{display:flex;justify-content:space-between;gap:8px}#app #growth-detail dt{color:var(--growth-muted);font-size:11px}#app #growth-detail dd{margin:0;color:var(--growth-text);font-weight:700}
+#app #workspace-goals #growth-build{width:100%;min-height:44px;background:#247265;border-color:#85c9b6;margin-bottom:10px}
+#app #workspace-goals button:disabled{opacity:.55;cursor:not-allowed}#app #growth-detail>small{display:block;color:var(--growth-muted);font-size:10px}
+#app .growth-milestone{display:flex;gap:16px;border:1px solid var(--growth-border);background:var(--growth-panel);border-radius:10px;padding:15px;margin-bottom:10px}
+#app .growth-milestone>span{font-size:22px;font-weight:800;color:var(--growth-muted)}#app .growth-milestone.reached>span{color:var(--growth-gold)}#app .growth-milestone h3{margin:0;font-size:16px}#app .growth-milestone p,#app .growth-milestone small{color:var(--growth-muted);font-size:12px}
+#app #workspace-goals .city-goal{background:var(--growth-panel);border-color:var(--growth-border);color:var(--growth-text)}
+#app #workspace-goals .city-goal.achieved{background:#234b49;border-color:#73b6a5}#app #workspace-goals .city-goal p,#app #workspace-goals .city-goal small{color:var(--growth-muted)}
+#app [data-facility-locked="true"]{border-style:dashed}
+@media(max-width:900px){#app .growth-content{grid-template-columns:minmax(0,1fr)}#app #growth-detail{display:grid;grid-template-columns:1fr;min-height:0}#app #growth-tree{min-height:240px}#app .growth-column>div{min-height:170px}}
+@media(max-width:700px){body[data-workspace="goals"] #app #workspace-drawer{width:calc(100vw - 20px);max-height:calc(100dvh - 225px)}#app #city-growth-open{font-size:10px;padding:3px 5px;min-height:30px}#app .growth-tabs{gap:4px}#app .growth-tabs button{font-size:11px;padding:7px 4px}#app .growth-summary{grid-template-columns:auto 1fr;gap:10px;padding:12px 0}#app #growth-progress{grid-column:1/-1}#app #growth-level{font-size:18px;padding:9px}#app #growth-stage{font-size:14px}#app .growth-categories{gap:4px}#app .growth-categories button{flex:1;font-size:11px;gap:4px;padding:6px 4px}#app .growth-categories svg{width:18px;height:18px}#app #growth-detail{padding:12px}#app #growth-next{font-size:11px}}
+
+#app #workspace-goals .city-goal.achieved strong{color:var(--growth-mint)}
+
+@media(max-width:700px){#app .stats>span{display:flex!important;flex-direction:column;align-items:center;gap:1px;font-size:9px!important;line-height:1.2}#app .stats>span b{font-size:12px;margin-left:0}#app #updates-open{flex-shrink:0}}

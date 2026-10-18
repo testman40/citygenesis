@@ -65,13 +65,15 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
     else if(t.facility==='solar'){add('surface',px,.10,pz,.86,.08,.84,'#c5d1c9');for(const dx of [-.23,.23]){add('mass',px+dx,.22,pz,.025,.24,.55,'#869d99');add('mass',px+dx,.36,pz,.39,.055,.72,'#365e85');for(const dz of [-.23,0,.23])add('detail',px+dx,.395,pz+dz,.34,.009,.012,'#89bac9');}if(quality==='high')add('detail',px+.39,.23,pz+.31,.10,.24,.14,'#d6ded2');}
     else if(t.facility==='outfall'){add('mass',px,.20,pz,.72,.25,.64,'#94adb0');add('mass',px,.38,pz,.52,.12,.46,'#6f919b');for(const dx of [-.20,0,.20])add('detail',px+dx,.17,pz+.34,.12,.13,.09,'#435f6a');mark('detail',px,.48,pz,.35,.035,.10,'#68c6d0');}
     else if(t.facility==='depot'){add('mass',px,.31,pz-.10,.84,.48,.54,'#e9dfc7');add('roof',px,.59,pz-.10,.92,.09,.62,'#608b89');for(const dx of [-.23,.23]){add('detail',px+dx,.27,pz+.18,.30,.33,.025,'#536d71');mark('detail',px+dx,.49,pz+.20,.27,.055,.02,'#f1d49c');}add('surface',px,.085,pz+.32,.86,.02,.34,'#b5c1b8');mark('detail',px,.63,pz+.19,.44,.09,.035,'#72d8bc');}
-    else if(t.facility==='clinic'||t.facility==='hospital'||t.facility==='elementary'||t.facility==='highSchool'){
-      const medical=t.facility==='clinic'||t.facility==='hospital',large=t.facility==='hospital'||t.facility==='highSchool',h=large?1.18:.54,accent=medical?'#62a7a3':t.facility==='elementary'?'#cd9e62':'#899f79';
+    else if(t.facility==='clinic'||t.facility==='hospital'||t.facility==='elementary'||t.facility==='highSchool'||t.facility==='library'||t.facility==='university'||t.facility==='medicalCenter'||t.facility==='researchCampus'){
+      const medical=t.facility==='clinic'||t.facility==='hospital'||t.facility==='medicalCenter',large=t.facility!=='clinic'&&t.facility!=='elementary'&&t.facility!=='library',h=t.facility==='medicalCenter'?1.85:t.facility==='researchCampus'?1.5:large?1.18:.54,accent=medical?'#62a7a3':t.facility==='library'?'#b98f62':t.facility==='university'?'#7193bb':t.facility==='researchCampus'?'#9d8fc5':t.facility==='elementary'?'#cd9e62':'#899f79';
       add('mass',px,h/2+.09,pz,.76,h,.68,body);add('mass',px,h+.13,pz,.82,.08,.74,accent);
-      for(let floor=0;floor<(large?3:1);floor++)for(const dx of [-.24,0,.24])add('detail',px+dx,.3+floor*.34,pz+.35,.14,.16,.018,'#7aaeb5');
+      for(let floor=0;floor<(t.facility==='medicalCenter'?5:large?3:1);floor++)for(const dx of [-.24,0,.24])add('detail',px+dx,.3+floor*.34,pz+.35,.14,.16,.018,'#7aaeb5');
       add('detail',px,.2,pz+.37,.16,.24,.03,accent);add('surface',px,.08,pz+.4,.33,.02,.18,'#d3d9cc');
       if(medical){add('detail',px+.22,h+.23,pz+.18,.22,.05,.065,'#f6f2dc');add('detail',px+.22,h+.235,pz+.18,.065,.05,.22,'#f6f2dc');if(large)add('mass',px-.26,h+.28,pz-.1,.2,.26,.38,'#e1e8db');}
       else{add('mass',px-.28,.13,pz+.28,.15,.08,.13,'#dbc480');add('detail',px-.29,h+.24,pz-.20,.025,.30,.025,'#687e78');add('detail',px-.22,h+.3,pz-.2,.15,.07,.025,accent);}
+      if(t.facility==='library')for(const dx of [-.23,0,.23])add('detail',px+dx,.47,pz+.37,.12,.05,.04,'#e5c68d');
+      if(t.facility==='researchCampus'){add('mass',px,h+.28,pz,.35,.23,.35,'#c6c1dd');add('detail',px,h+.5,pz,.025,.3,.025,accent);}
       if(quality==='high'){add('detail',px-.18,h+.23,pz-.16,.18,.13,.19,'#a5b4aa');add('detail',px+.26,.16,pz+.4,.24,.05,.07,'#b5a27d');}
     }else if(t.facility==='fire'||t.facility==='police'){
       const accent=t.facility==='fire'?'#c96f56':'#658caf';

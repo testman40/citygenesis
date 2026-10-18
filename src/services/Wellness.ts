@@ -1,16 +1,18 @@
 
+import {DEVELOPMENT_FACILITIES,isDevelopmentKind,type DevelopmentKind} from './DevelopmentFacilities';
 import {Pathfinder} from '../traffic/Pathfinder';
 import type {RoadNetwork} from '../simulation/RoadNetwork';
 import type {Traffic} from '../traffic/Traffic';
 import {roadTimeField,buildingTime} from './Reach';
 import {WELLNESS_CONFIG,type WellnessConfig} from './config';
-export type WellnessKind='clinic'|'hospital'|'elementary'|'highSchool';
+export type WellnessKind='clinic'|'hospital'|'elementary'|'highSchool'|DevelopmentKind;
 export type ServiceGroup='medical'|'elementary'|'highSchool';
-export const WELLNESS_KINDS:WellnessKind[]=['clinic','hospital','elementary','highSchool'];
+export const WELLNESS_KINDS:WellnessKind[]=['clinic','hospital','elementary','highSchool',...Object.keys(DEVELOPMENT_FACILITIES) as DevelopmentKind[]];
 export interface WellnessState {version:1;medicalEnabled:boolean;educationEnabled:boolean;config:WellnessConfig;facilities:{id:number;kind:WellnessKind}[];health:number;basicGraduates:number;advancedGraduates:number;populationReference:number;lastMonth:number}
 export interface ResidentBuilding {id:number;level:number}
 export interface WellnessResult {medical:number;elementary:number;highSchool:number;medicalMinutes:number|null;schoolMinutes:number|null}
-const group=(k:WellnessKind):ServiceGroup=>k==='clinic'||k==='hospital'?'medical':k;
+export const wellnessGroup=(k:WellnessKind):ServiceGroup=>isDevelopmentKind(k)?DEVELOPMENT_FACILITIES[k].group:k==='clinic'||k==='hospital'?'medical':k;
+const group=wellnessGroup;
 export class Wellness {
  budget={medical:1,education:1};funding={medical:1,education:1};
  readonly facilities=new Map<number,WellnessKind>();readonly results=new Map<number,WellnessResult>();readonly facilityStats=new Map<number,{active:boolean;capacity:number;utilization:number;maintenance:number}>();
@@ -26,9 +28,10 @@ export class Wellness {
  get advancedLevel(){return this.populationReference?this.advancedGraduates/this.populationReference:0;}
  get penalty(){return (this.medicalEnabled?(1-this.health)*this.config.healthSatisfactionPenalty:0)+(this.educationEnabled?(1-(this.elementaryCoverage*.6+this.highSchoolCoverage*.4))*this.config.educationSatisfactionPenalty:0);}
  get migrationFactor(){return this.medicalEnabled?this.config.minimumMigrationFactor+(1-this.config.minimumMigrationFactor)*this.health:1;}
- cost(kind:WellnessKind){return this.config[(kind+'Cost') as keyof WellnessConfig];}
- capacity(kind:WellnessKind){return this.config[(kind+'Capacity') as keyof WellnessConfig]*this.budget[group(kind)==='medical'?'medical':'education'];}
- upkeep(kind:WellnessKind){return this.config[(kind+'Maintenance') as keyof WellnessConfig]*this.funding[group(kind)==='medical'?'medical':'education'];}
+ cost(kind:WellnessKind){if(isDevelopmentKind(kind)){const f=DEVELOPMENT_FACILITIES[kind];return f.cost*this.config[(f.base+'Cost') as keyof WellnessConfig]/WELLNESS_CONFIG[(f.base+'Cost') as keyof WellnessConfig];}return this.config[(kind+'Cost') as keyof WellnessConfig];}
+ capacity(kind:WellnessKind){const f=isDevelopmentKind(kind)?DEVELOPMENT_FACILITIES[kind]:null;return (f?f.capacity*this.config[(f.base+'Capacity') as keyof WellnessConfig]/WELLNESS_CONFIG[(f.base+'Capacity') as keyof WellnessConfig]:this.config[(kind+'Capacity') as keyof WellnessConfig])*this.budget[group(kind)==='medical'?'medical':'education'];}
+ baseUpkeep(kind:WellnessKind){const f=isDevelopmentKind(kind)?DEVELOPMENT_FACILITIES[kind]:null;return f?f.maintenance*this.config[(f.base+'Maintenance') as keyof WellnessConfig]/WELLNESS_CONFIG[(f.base+'Maintenance') as keyof WellnessConfig]:this.config[(kind+'Maintenance') as keyof WellnessConfig];}
+ upkeep(kind:WellnessKind){return this.baseUpkeep(kind)*this.funding[group(kind)==='medical'?'medical':'education'];}
  get maintenance(){let sum=0;for(const k of this.facilities.values())sum+=this.upkeep(k);return sum;}
  add(id:number,kind:WellnessKind,month:number){if(this.facilities.has(id)||this.facilities.size>=this.config.maxFacilities)return false;this.facilities.set(id,kind);if(group(kind)==='medical')this.medicalEnabled=true;else this.educationEnabled=true;this.lastMonth=month;this.signature='';return true;}
  remove(id:number){if(this.facilities.delete(id))this.signature='';}

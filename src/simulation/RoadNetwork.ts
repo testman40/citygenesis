@@ -2,11 +2,13 @@
 export class RoadNetwork {
  private membership=new Map<number,number>();private components=new Map<number,Set<number>>();private minima=new Map<number,number>();private nextId=1;private main:number|null=null;
  private cycleRevision=-1;private cycleCache=new Map<number,boolean>();
+ readonly busOnly=new Set<number>();
+ allows(id:number,mode:'car'|'bus'|'walk'='bus'){return this.has(id)&&(mode!=='car'||!this.busOnly.has(id));}
  readonly directions=new Map<number,number>();
  /** 0 north, 1 east, 2 south, 3 west; absent means two way. Physical components remain undirected. */
  setDirection(id:number,direction:number|null){if(!this.has(id)||direction!==null&&(!Number.isInteger(direction)||direction<0||direction>3))throw Error('道路と進行方向を確認してください');if(direction===null)this.directions.delete(id);else this.directions.set(id,direction);this.revision++;}
- canTravel(a:number,b:number){if(!this.adjacent(a).includes(b))return false;const direction=(b===a-this.size?0:b===a+1?1:b===a+this.size?2:3);return (!this.directions.has(a)||this.directions.get(a)===direction)&&(!this.directions.has(b)||this.directions.get(b)!==(direction+2)%4);}
- successors(id:number){return this.adjacent(id).filter(n=>this.canTravel(id,n));}
+ canTravel(a:number,b:number,mode:'car'|'bus'|'walk'='bus'){if(!this.allows(a,mode)||!this.allows(b,mode))return false;if(!this.adjacent(a).includes(b))return false;const direction=(b===a-this.size?0:b===a+1?1:b===a+this.size?2:3);return (!this.directions.has(a)||this.directions.get(a)===direction)&&(!this.directions.has(b)||this.directions.get(b)!==(direction+2)%4);}
+ successors(id:number,mode:'car'|'bus'|'walk'='bus'){return this.adjacent(id).filter(n=>this.canTravel(id,n,mode));}
  inspected=0;revision=0;
  constructor(readonly size:number){}
  private neighbors(id:number){const x=id%this.size,z=Math.floor(id/this.size);return [x>0?id-1:-1,x+1<this.size?id+1:-1,z>0?id-this.size:-1,z+1<this.size?id+this.size:-1].filter(n=>n>=0);}
@@ -24,7 +26,7 @@ export class RoadNetwork {
  load(ids:Iterable<number>){const iterator=this.loadSteps(ids);while(!iterator.next().done){}}
  *loadSteps(ids:Iterable<number>):Generator<void>{
   const remaining=new Set(ids);for(const id of remaining)if(!Number.isInteger(id)||id<0||id>=this.size*this.size)throw new Error('Invalid road id');
-  this.directions.clear();this.membership.clear();this.components.clear();this.minima.clear();this.main=null;this.inspected=0;this.revision++;
+  this.busOnly.clear();this.directions.clear();this.membership.clear();this.components.clear();this.minima.clear();this.main=null;this.inspected=0;this.revision++;
   while(remaining.size){const first=remaining.values().next().value!,key=this.nextId++,group=new Set<number>([first]),queue=[first];let min=first;remaining.delete(first);
    for(let i=0;i<queue.length;i++){const n=queue[i];this.inspected++;if(this.inspected%256===0)yield;this.membership.set(n,key);min=Math.min(min,n);for(const neighbor of this.neighbors(n))if(remaining.delete(neighbor)){group.add(neighbor);queue.push(neighbor);}}
    this.components.set(key,group);this.minima.set(key,min);
@@ -43,7 +45,7 @@ export class RoadNetwork {
    for(const other of adjacent){if(other===key)continue;min=Math.min(min,this.minima.get(other)!);for(const n of this.components.get(other)!){group.add(n);this.membership.set(n,key);this.inspected++;}this.components.delete(other);this.minima.delete(other);}
    this.minima.set(key,min);this.chooseMain();if(!joinsMain&&oldKey!==this.main){for(const n of oldMain)affected.add(n);for(const n of this.components.get(this.main!)!)affected.add(n);}
   }else{
-   this.directions.delete(id);const key=this.membership.get(id)!,old=this.components.get(key)!;this.components.delete(key);this.minima.delete(key);this.membership.delete(id);const remaining=new Set(old);remaining.delete(id);
+   this.busOnly.delete(id);this.directions.delete(id);const key=this.membership.get(id)!,old=this.components.get(key)!;this.components.delete(key);this.minima.delete(key);this.membership.delete(id);const remaining=new Set(old);remaining.delete(id);
    while(remaining.size){const first=remaining.values().next().value!;remaining.delete(first);const group=new Set<number>([first]),queue=[first],newKey=this.nextId++;let min=first;
     for(let i=0;i<queue.length;i++){const n=queue[i];this.inspected++;affected.add(n);this.membership.set(n,newKey);min=Math.min(min,n);for(const neighbor of this.neighbors(n))if(remaining.delete(neighbor)){group.add(neighbor);queue.push(neighbor);}}
     this.components.set(newKey,group);this.minima.set(newKey,min);

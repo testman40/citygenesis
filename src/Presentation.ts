@@ -1,6 +1,9 @@
 import type {Tool} from './simulation/City';
 // UI only: never mutates the city, save data, or input handling.
 const paths:Record<string,string>={
+'bus-road':'M5 2 2 22M19 2l3 20M8 7h8v10H8V7Zm0 5h8m-6 5v3m4-3v3',bus:'M5 4h14v14H5V4Zm0 7h14M8 18v3m8-3v3M8 15h1m6 0h1',train:'M6 2h12v16H6V2Zm0 9h12M8 18l-3 4m11-4 3 4M9 15h1m4 0h1',subway:'M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0ZM7 16V8l5 6 5-6v8',ship:'M3 13l9-3 9 3-3 6H6l-3-6ZM8 11V5h8v6M12 5V2M2 22c3-3 6 3 10 0s6 3 10 0',transit:'M3 3h10v14H3V3Zm0 7h10M5 17v4m6-4v4M16 5h5v12h-5M16 12h5m-2 5v4',
+'shape-line':'M3 19 21 5M3 15v4h4m10-14h4v4','shape-curve':'M3 20C3 4 21 20 21 4M17 4h4v4','shape-square':'M4 4h16v16H4V4Z','shape-rectangle':'M2 7h20v10H2V7Z',
+
 bridge:'M2 17h20M4 17V6m16 11V6M4 9c5 6 11 6 16 0M8 12v5m8-5v5',park:'M12 2 5 11h3l-4 5h6v6h4v-6h6l-4-5h3L12 2Z',plaza:'M3 20h18M6 17h12l-1-5H7l-1 5ZM12 12V4m-4 4c0-5 8-5 8 0',goals:'M8 3h8v7a4 4 0 0 1-8 0V3ZM8 5H3v3c0 3 3 4 5 4m8-7h5v3c0 3-3 4-5 4M12 14v6m-4 1h8',audio:'M9 18V5l11-3v14M9 8l11-3M9 18c0 4-6 4-6 1s6-4 6-1Zm11-2c0 4-6 4-6 1s6-4 6-1Z',
 select:'m5 3 14 10-7 1-3 7L5 3Z',road:'M5 2 2 22M19 2l3 20M12 3v4m0 4v3m0 4v3',erase:'M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7',
 residential:'m3 11 9-8 9 8M5 10v11h14V10M10 21v-7h4v7',commercial:'M3 9h18l-2-6H5L3 9Zm1 0v12h16V9M9 21v-7h6v7M3 9c0 4 6 4 6 0 0 4 6 4 6 0 0 4 6 4 6 0',industrial:'M3 21V10l6 4v-4l6 4V3h4l2 18H3Zm3-3h2m3 0h2m3 0h2',
@@ -40,6 +43,6 @@ export class ToolFeedback {
   this.chip.hidden=!this.inside||!s.ready||s.busy;this.chip.style.left=Math.max(8,Math.min(this.x+18,innerWidth-this.chip.offsetWidth-8))+'px';this.chip.style.top=Math.max(8,Math.min(this.y+18,innerHeight-this.chip.offsetHeight-8))+'px';
   this.hint.hidden=!(s.drawing&&s.tool!=='select')&&!s.routePicking;
   const message=s.routePicking?'停留所を順番にクリック · Esc／右クリックで終了':s.draft?'ドラッグで範囲指定 · 離すと確定 · Esc／右クリックで取消':s.facility?'離すと設置 · Esc／右クリックで取消':'ドラッグで連続指定 · Esc／右クリックで終了（適用済みのマスは残ります）';if(this.hint.textContent!==message)this.hint.textContent=message;
-  document.getElementById('road-panel')!.hidden=s.tool!=='road'&&s.tool!=='erase';(document.getElementById('road-action')!.closest('label') as HTMLElement).hidden=s.tool==='erase';(document.getElementById('road-fill')!.closest('label') as HTMLElement).hidden=(document.getElementById('road-mode') as HTMLSelectElement).value==='line';document.getElementById('road-preview-status')!.hidden=!s.draft;
+  document.getElementById('road-panel')!.hidden=s.tool!=='road'&&s.tool!=='erase';(document.getElementById('road-action')!.closest('label') as HTMLElement).hidden=s.tool==='erase';(document.getElementById('road-fill')!.closest('label') as HTMLElement).hidden=(document.getElementById('road-mode') as HTMLSelectElement).value==='line'||(document.getElementById('road-mode') as HTMLSelectElement).value==='curve';document.getElementById('road-preview-status')!.hidden=!s.draft;
  }
 }

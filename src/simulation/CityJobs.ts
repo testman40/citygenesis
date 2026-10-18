@@ -22,7 +22,7 @@ export class CityJobs {
  }
  roads(request:RoadRequest){const r=structuredClone(request);const command=async(city:City)=>{const epoch=this.epoch;try{const next=await roadEdit(city,r,this.abort?.signal);if(epoch!==this.epoch)return;commitRoad(city,next);}catch(e){if(epoch===this.epoch)this.notify(e);}};
  if(this.busy){this.commands.push(command);this.notify();return;}
- const ids=[...roadCells(this.city.size,r)];if(ids.length===1){const c={x:ids[0]%this.city.size,z:Math.floor(ids[0]/this.city.size)};if(!r.remove||this.city.hasRoad(c))this.edit(c,c,r.remove?'erase':'road');return;}
+ const ids=[...roadCells(this.city.size,r)];if(ids.length===1&&!r.roadType){const c={x:ids[0]%this.city.size,z:Math.floor(ids[0]/this.city.size)};if(!r.remove||this.city.hasRoad(c))this.edit(c,c,r.remove?'erase':'road');return;}
  if(ids.length<=256&&this.city.roadCount<1024&&this.city.buildingCount<128){try{const state=roadState(this.city.snapshot(),r).state;commitRoad(this.city,City.fromState(state,{allowPopulationChange:true}));this.changed(this.city);}catch(e){this.notify(e);}return;}
  const epoch=this.epoch;this.stable=this.city.snapshot();this.abort=new AbortController();const job=async()=>{try{await command(this.city);if(epoch!==this.epoch)return;this.changed(this.city);while(this.commands.length&&epoch===this.epoch){await this.commands.shift()!(this.city);if(epoch!==this.epoch)return;this.changed(this.city);await new Promise<void>(r=>setTimeout(r,0));}}catch(e){if(epoch===this.epoch){this.commands=[];this.notify(e);}}finally{if(epoch===this.epoch){this.running=null;this.stable=null;this.abort=null;this.notify();}}};this.running=job();this.notify();
  }

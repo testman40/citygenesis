@@ -1,7 +1,13 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>交差点の渋滞修正版</strong></p>
+<p class="updates-current">表示中の版：<strong>公共交通・道路ツール改善版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-18：公共交通と道路の操作を整理</h3>
+<ul><li><strong>道路をアイコンで選択</strong> — 直線・曲線・正方形・長方形を選べます。曲線はマス目に沿って建設します。</li>
+<li><strong>公共交通のカテゴリ</strong> — バス・電車・地下鉄・船の入口を追加。バスには車庫・停車場所・専用道路をまとめました。電車・地下鉄・船の運行は今後の実装です。</li>
+<li><strong>バス専用道路</strong> — レベル2「小さな町」で解放。一般車・転入車は使わず、バスと歩行者が利用できます。通常道路の2倍の費用で新設・転換できます。</li></ul>
+<p class="workspace-tip">専用道路は青緑色です。一般車も渡らせる交差点のマスは一般道路として残してください。保存バージョン4/5の任意項目に専用道路を保存します。</p>
+</article>
 <article class="update-entry"><h3>2026-10-18：交差点での停止・再発進を修正</h3>
 <ul><li><strong>交差点の手前で待機</strong> — 車体の先端がはみ出して、通過中の車を塞ぐ問題を修正しました。</li>
 <li><strong>出口の空きを確認</strong> — 出口が詰まっている場合は進入を待ち、空いてから再発進します。車体の後端が通過するまで交差点の優先権を維持します。</li></ul>

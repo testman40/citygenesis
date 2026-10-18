@@ -128,7 +128,7 @@ export class City {
         if(this.waterUtility||next.waterUtility){const a=this.waterUtility?.status(id),b=next.waterUtility?.status(id);if(a?.water!==b?.water||a?.processed!==b?.processed||a?.residual!==b?.residual)mark(x,z);}
         if(ar!==br){adjacent(x,z);continue;}
         if(ar){
-          if(this.network.directions.get(id)!==next.network.directions.get(id))mark(x,z);
+          if(this.network.busOnly.has(id)!==next.network.busOnly.has(id)||this.network.directions.get(id)!==next.network.directions.get(id))mark(x,z);
           if(this.network.isMain(id)!==next.network.isMain(id)||this.traffic.congestion(id)!==next.traffic.congestion(id))mark(x,z);
           // A service field change also changes the neighboring vacant-tile overlay.
           if(services&&(this.safety.coverageAt(id,'fire')!==next.safety.coverageAt(id,'fire')||this.safety.coverageAt(id,'police')!==next.safety.coverageAt(id,'police')||(['medical','elementary','highSchool'] as const).some(k=>this.wellness.roadCoverage(id,k)!==next.wellness.roadCoverage(id,k))))adjacent(x,z);

@@ -26,19 +26,19 @@ export class Residents {
  private reindex(){this.counts.clear();this.adults.clear();this.homeFamilies.clear();this.ageCounts.子供=this.ageCounts.大人=this.ageCounts.高齢者=0;this.families.clear();this.offsets.clear();this.populationValue=this.adultValue=0;for(const h of this.state.households){this.families.set(h[0],h);const familyList=this.homeFamilies.get(h[1])??[];familyList.push(h);this.homeFamilies.set(h[1],familyList);for(const group of groups(h))this.ageCounts[group]++;this.offsets.set(h[0],this.adults.get(h[1])??0);this.counts.set(h[1],(this.counts.get(h[1])??0)+h[2]);const adults=groups(h).filter(g=>g==='大人').length;this.adults.set(h[1],(this.adults.get(h[1])??0)+adults);this.populationValue+=h[2];this.adultValue+=adults;}this.jobsRevision=-1;}
  seed(homes:{id:number;capacity:number}[],population:number){let left=population;for(const home of homes){let count=Math.min(home.capacity,left);while(count>0){const size=Math.min(4,count);this.state.households.push([this.state.nextId++,home.id,size,0]);left-=size;count-=size;}}if(left)throw new Error('既存住民を収容できる住宅がありません');this.reindex();}
  reconcile(homes:{id:number;capacity:number}[],places:Place[],city?:City){
-  this.places=places;if(city)for(const a of this.state.arrivals)if(a.path.some((id,i)=>!city.network.has(id)||(i>0&&!city.network.canTravel(a.path[i-1],id))))a.blocked=true;const capacity=new Map(homes.map(h=>[h.id,h.capacity])),used=new Map<number,number>();let changed=false;
+  this.places=places;if(city)for(const a of this.state.arrivals)if(a.path.some((id,i)=>!city.network.allows(id,'car')||(i>0&&!city.network.canTravel(a.path[i-1],id,'car'))))a.blocked=true;const capacity=new Map(homes.map(h=>[h.id,h.capacity])),used=new Map<number,number>();let changed=false;
   this.state.households=this.state.households.filter(h=>{const room=(capacity.get(h[1])??0)-(used.get(h[1])??0);if(room<=0){changed=true;return false;}if(h[2]>room){h[2]=room;changed=true;}used.set(h[1],(used.get(h[1])??0)+h[2]);return true;});
   this.state.arrivals=this.state.arrivals.filter(a=>{const h=a.household,room=(capacity.get(h[1])??0)-(used.get(h[1])??0);if(room<h[2])return false;used.set(h[1],(used.get(h[1])??0)+h[2]);return true;});if(changed)this.reindex();
  }
- gateways(city:City){if(this.gatewayRevision!==city.network.revision){const n=city.size;this.gatewayCache=[...city.network.ids()].filter(id=>city.network.isMain(id)&&(id<n||id>=n*(n-1)||id%n===0||id%n===n-1)).sort((a,b)=>a-b);this.gatewayRevision=city.network.revision;}return this.gatewayCache;}
- private route(city:City,from:number,to:number){
-  if(this.pathRevision!==city.network.revision){this.paths.clear();this.lanes.clear();this.finder=new Pathfinder(city.network,256);this.pathRevision=city.network.revision;}
-  const key=from+':'+to;if(this.paths.has(key))return this.paths.get(key)!;this.finder!.resetBudget();const path=this.finder!.path(from,to)??[];if(this.paths.size>=256)this.paths.delete(this.paths.keys().next().value!);this.paths.set(key,path);return path;
+ gateways(city:City){if(this.gatewayRevision!==city.network.revision){const n=city.size;this.gatewayCache=[...city.network.ids()].filter(id=>city.network.isMain(id)&&city.network.allows(id,'car')&&(id<n||id>=n*(n-1)||id%n===0||id%n===n-1)).sort((a,b)=>a-b);this.gatewayRevision=city.network.revision;}return this.gatewayCache;}
+ private route(city:City,from:number,to:number,mode:'car'|'walk'='car'){
+  if(this.pathRevision!==city.network.revision){this.paths.clear();this.lanes.clear();this.finder=new Pathfinder(city.network,256,'car');this.pathRevision=city.network.revision;}
+  const key=mode+':'+from+':'+to;if(this.paths.has(key))return this.paths.get(key)!;this.finder!.resetBudget();const path=(mode==='car'?this.finder!:new Pathfinder(city.network,256,'walk')).path(from,to)??[];if(this.paths.size>=256)this.paths.delete(this.paths.keys().next().value!);this.paths.set(key,path);return path;
  }
  private access(city:City,id:number){return city.network.adjacent(id).filter(r=>city.network.isMain(r));}
  private entryPath(city:City,road:number){
-  this.route(city,road,road);const key='entry:'+road,cached=this.paths.get(key);if(cached)return cached;const n=city.size,queue=[road],parent=new Map<number,number>();parent.set(road,road);let path:number[]=[];
-  for(let i=0;i<queue.length;i++){const id=queue[i];if(id<n||id>=n*(n-1)||id%n===0||id%n===n-1){path=[id];let cursor=id;while(cursor!==road){cursor=parent.get(cursor)!;path.push(cursor);}break;}for(const previous of city.network.adjacent(id))if(!parent.has(previous)&&city.network.canTravel(previous,id)){parent.set(previous,id);queue.push(previous);}}
+  if(!city.network.allows(road,'car'))return [];this.route(city,road,road);const key='entry:'+road,cached=this.paths.get(key);if(cached)return cached;const n=city.size,queue=[road],parent=new Map<number,number>();parent.set(road,road);let path:number[]=[];
+  for(let i=0;i<queue.length;i++){const id=queue[i];if(id<n||id>=n*(n-1)||id%n===0||id%n===n-1){path=[id];let cursor=id;while(cursor!==road){cursor=parent.get(cursor)!;path.push(cursor);}break;}for(const previous of city.network.adjacent(id))if(!parent.has(previous)&&city.network.canTravel(previous,id,'car')){parent.set(previous,id);queue.push(previous);}}
   if(this.paths.size>=256)this.paths.delete(this.paths.keys().next().value!);this.paths.set(key,path);return path;
  }
  plan(city:City,limit:number){
@@ -52,7 +52,7 @@ export class Residents {
  advance(city:City,seconds:number){
   if(!Number.isFinite(seconds)||seconds<0)throw new Error('住民の経過時間が不正です');if(!seconds)return false;this.state.time+=seconds/city.config.stepSeconds;let changed=false;
   const retry=this.state.time>=this.retry;if(retry)this.retry=this.state.time+1;
-  for(const a of this.state.arrivals){const intact=a.path.every((id,i)=>city.network.has(id)&&(!i||city.network.canTravel(a.path[i-1],id)));if(!intact||a.blocked){a.blocked=true;if(retry){const current=a.path[Math.min(a.path.length-1,Math.floor(a.progress))];if(city.network.has(current))for(const road of this.access(city,a.household[1])){const path=this.route(city,current,road);if(path.length){a.path=[...path];a.progress=0;a.blocked=false;break;}}}if(a.blocked)continue;}
+  for(const a of this.state.arrivals){const intact=a.path.every((id,i)=>city.network.allows(id,'car')&&(!i||city.network.canTravel(a.path[i-1],id,'car')));if(!intact||a.blocked){a.blocked=true;if(retry){const current=a.path[Math.min(a.path.length-1,Math.floor(a.progress))];if(city.network.allows(current,'car'))for(const road of this.access(city,a.household[1])){const path=this.route(city,current,road);if(path.length){a.path=[...path];a.progress=0;a.blocked=false;break;}}}if(a.blocked)continue;}
    a.progress+=seconds*2.5;if(a.progress>=Math.max(1,a.path.length-1)){this.state.households.push(a.household);changed=true;}
   }
   if(changed){const arrived=new Set(this.state.households.map(h=>h[0]));this.state.arrivals=this.state.arrivals.filter(a=>!arrived.has(a.household[0]));this.reindex();}return changed;
@@ -76,9 +76,9 @@ export class Residents {
   const base:Activity={label:person.group==='大人'&&!job?.employed?'在宅・求職':'在宅',mode:'滞在',...home,path:[],progress:0,moving:false,work:job?.route.work};
   if(target===undefined||hour<start||hour>=end)return base;
   const from=this.access(city,person.home)[0],to=this.access(city,target)[0];if(from===undefined||to===undefined)return {...base,label:'外出先への道路待ち'};
-  const outward=job?.employed?job.path:this.route(city,from,to);if(!outward.length||outward.some((id,i)=>i>0&&!city.network.canTravel(outward[i-1],id)))return {...base,label:'通行経路なし'};
+  const outward=job?.employed?job.path:this.route(city,from,to,'walk');if(!outward.length||outward.some((id,i)=>i>0&&!city.network.canTravel(outward[i-1],id)))return {...base,label:'通行経路なし'};
   const travel=Math.min(2,Math.max(.4,outward.length*.07));if(hour>=start+travel&&hour<end-travel)return {...base,label,mode:'滞在',x:target%city.size+.5,z:Math.floor(target/city.size)+.5,path:outward,progress:1};
-  const returning=hour>=end-travel,path=returning?this.route(city,outward.at(-1)!,outward[0]):outward;if(!path.length)return {...base,label:'帰宅経路なし'};
+  const returning=hour>=end-travel,path=returning?this.route(city,outward.at(-1)!,outward[0],mode==='車'?'car':'walk'):outward;if(!path.length)return {...base,label:'帰宅経路なし'};
   const fraction=(hour-(returning?end-travel:start))/travel,displayPath=mode==='徒歩'?(returning?[target,...path,person.home]:[person.home,...path,target]):path,vehicle=mode==='車'?this.car(city,path,fraction,'resident:'+person.id):undefined;
   return {...base,label:returning?'帰宅中':label==='勤務'?'通勤中':label==='通学'?'通学中':label+'へ移動',mode,...(vehicle??this.pose(city,displayPath,fraction)),path:displayPath,progress:fraction,moving:true,vehicle};
  }

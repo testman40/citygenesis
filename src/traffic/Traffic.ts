@@ -8,7 +8,7 @@ import {Pathfinder} from './Pathfinder';
 export interface Home {id:number;capacity:number;workers?:number;access:number[]}
 export interface Workplace {id:number;capacity:number;kind:'commercial'|'industrial';access:number[]}
 export interface Commute {home:number;work:number;kind:Workplace['kind'];count:number;path:number[];distance:number;minutes:number;served:number;movement?:{walk:number;bus:number;car:number;busPath?:number[];route?:number}}
-export interface TrafficState {ticks:number;remainder:number;capacities:[number,number][];routing?:RoutingState}
+export interface TrafficState {busOnly?:number[];ticks:number;remainder:number;capacities:[number,number][];routing?:RoutingState}
 export interface VehiclePose {x:number;z:number;angle:number;roadA?:number;roadB?:number;mapSize?:number;laneAligned?:boolean;trajectory?:LaneLoop;journeyTime?:number;clockTime?:number;id?:string;kind?:VehicleKind;junction?:boolean;piece?:number}
 let fractionScratch=new Float64Array(),orderScratch=new Uint32Array();
 export function apportion(total:number,weights:number[]):number[]{
@@ -19,7 +19,7 @@ export function apportion(total:number,weights:number[]):number[]{
 export class Traffic {
  residentMode=false;private get tripFactor(){return this.residentMode?1:2;}
  solveRevision=0;readonly routing:DynamicRouting;routingMonth=0;allowRebalance=false;private pathsDynamic=false;private carCounts:number[]=[];private carLegs:CarLeg[][]=[];analysis={baselineMinutes:0,actualCarMinutes:0,avoidedMinutes:0,splitOD:0,carDemand:0,busRoadDemand:0};
- residentPopulation:number|undefined;readonly pathfinder:Pathfinder;
+ residentPopulation:number|undefined;readonly pathfinder:Pathfinder;private carFinder:Pathfinder;
  routes:Commute[]=[];volumes=new Map<number,number>();private capacities=new Map<number,number>();
  employed=0;commercialEmployed=0;industrialEmployed=0;averageMinutes=0;averageDistance=0;congestionRate=0;unassigned=0;pending=0;
  private laneCache=new Map<string,LaneLoop>();
@@ -41,7 +41,7 @@ export class Traffic {
  private inputsMatch(homes:Home[],workplaces:Workplace[],workers:number){let length=9+this.capacities.size*2;for(const h of homes)length+=4+h.access.length;for(const w of workplaces)length+=4+w.access.length;if(this.inputValues.length<length){const next=new Float64Array(Math.max(length,this.inputValues.length*2));next.set(this.inputValues);this.inputValues=next;}let same=this.signature!==''&&this.inputLength===length,index=0;const put=(v:number)=>{if(!Object.is(this.inputValues[index],v))same=false;this.inputValues[index++]=v;};put(this.graph.revision);put(this.routing.enabled?1:0);put(this.transit?.revision??0);put(this.transit?.stops.size?(this.residentPopulation??NaN):0);put(workers);put(this.tripFactor);put(homes.length);put(workplaces.length);put(this.capacities.size);for(const h of homes){put(h.id);put(h.capacity);put(h.workers??-1);put(h.access.length);for(const id of h.access)put(id);}for(const w of workplaces){put(w.id);put(w.kind==='industrial'?1:0);put(w.capacity);put(w.access.length);for(const id of w.access)put(id);}for(const [id,v] of this.capacities){put(id);put(v);}this.inputLength=length;this.signature='valid';return same;}
  private ranksMatch(workplaces:Workplace[]){const length=workplaces.length*2;if(this.rankValues.length<length){const next=new Float64Array(length);next.set(this.rankValues);this.rankValues=next;}let same=this.rankLength===length;for(let i=0;i<workplaces.length;i++){const w=workplaces[i],kind=w.kind==='industrial'?1:0;if(this.rankValues[i*2]!==w.id||this.rankValues[i*2+1]!==kind)same=false;this.rankValues[i*2]=w.id;this.rankValues[i*2+1]=kind;}this.rankLength=length;return same;}
  private signature='';private ticks=0;private remainder=0;
- constructor(readonly graph:RoadNetwork,readonly config:Balance,readonly transit?:Transit){this.routing=new DynamicRouting(graph,config);this.pathfinder=new Pathfinder(graph,config.maxPathCache);this.volumeBuffer=new Float64Array(graph.size*graph.size);this.multiplierBuffer=new Float64Array(graph.size*graph.size);}
+ constructor(readonly graph:RoadNetwork,readonly config:Balance,readonly transit?:Transit){this.routing=new DynamicRouting(graph,config);this.pathfinder=new Pathfinder(graph,config.maxPathCache);this.carFinder=new Pathfinder(graph,config.maxPathCache,'car');this.volumeBuffer=new Float64Array(graph.size*graph.size);this.multiplierBuffer=new Float64Array(graph.size*graph.size);}
  capacity(id:number){return this.capacities.get(id)??this.config.roadCapacity;}
  volume(id:number){return this.volumes.get(id)??0;}
  congestion(id:number){return this.volume(id)/this.capacity(id);}
@@ -49,14 +49,14 @@ export class Traffic {
  setCapacity(id:number,capacity:number){if(!this.graph.has(id)||!Number.isFinite(capacity)||capacity<=0||capacity>1e6)throw new Error('道路容量が不正です');this.capacities.set(id,capacity);this.signature='';}
  adoptGraphRevision(from:number,to:number){if(this.sampleRevision===from)this.sampleRevision=to;}
  get displayTime(){return this.ticks*.05*this.config.displayMinutesPerSecond;}
- snapshot():TrafficState {return {...(this.routing.enabled?{routing:this.routing.snapshot()}:{}),ticks:this.ticks,remainder:this.remainder,capacities:[...this.capacities].filter(([id])=>this.graph.has(id)).sort((a,b)=>a[0]-b[0])};}
- restore(s:TrafficState){if(s.routing)this.routing.restore(s.routing);this.ticks=s.ticks;this.remainder=s.remainder;this.capacities=new Map(s.capacities);this.signature='';}
+ snapshot():TrafficState {return {...(this.graph.busOnly.size?{busOnly:[...this.graph.busOnly].filter(id=>this.graph.has(id)).sort((a,b)=>a-b)}:{}),...(this.routing.enabled?{routing:this.routing.snapshot()}:{}),ticks:this.ticks,remainder:this.remainder,capacities:[...this.capacities].filter(([id])=>this.graph.has(id)).sort((a,b)=>a[0]-b[0])};}
+ restore(s:TrafficState){this.graph.busOnly.clear();for(const id of s.busOnly??[])if(this.graph.has(id))this.graph.busOnly.add(id);this.graph.revision++;if(s.routing)this.routing.restore(s.routing);this.ticks=s.ticks;this.remainder=s.remainder;this.capacities=new Map(s.capacities);this.signature='';}
  advance(seconds:number){if(!Number.isFinite(seconds)||seconds<0)throw new Error('交通時間が不正です');this.remainder+=seconds;const ticks=Math.floor((this.remainder+1e-9)/.05);this.ticks+=ticks;this.remainder=Math.max(0,this.remainder-ticks*.05);}
  solve(homes:Home[],workplaces:Workplace[],workers:number):Set<number>{const iterator=this.solveSteps(homes,workplaces,workers);for(let next=iterator.next();;next=iterator.next())if(next.done)return next.value;}
  *solveSteps(homes:Home[],workplaces:Workplace[],workers:number):Generator<void,Set<number>>{
   this.routing.tripFactor=this.tripFactor;const same=this.inputsMatch(homes,workplaces,workers);
   if(same&&!(this.allowRebalance&&this.routing.due(this.routingMonth)))return new Set();
-  const previous=this.volumes,changed=new Set<number>();if(!this.ranksMatch(workplaces)){this.ranks.clear();this.rankEntries=0;this.idOrder=Uint32Array.from(workplaces.map((_,i)=>i).sort((a,b)=>workplaces[a].id-workplaces[b].id));}this.routes=[];this.volumes=new Map();this.pathfinder.resetBudget();
+  const previous=this.volumes,changed=new Set<number>();if(!this.ranksMatch(workplaces)){this.ranks.clear();this.rankEntries=0;this.idOrder=Uint32Array.from(workplaces.map((_,i)=>i).sort((a,b)=>workplaces[a].id-workplaces[b].id));}this.routes=[];this.volumes=new Map();this.pathfinder.resetBudget();this.carFinder.resetBudget();
   const available=workplaces.map(w=>w.capacity),people=this.residentMode?homes.map(h=>h.workers??0):apportion(workers,homes.map(h=>h.capacity));this.pending=0;this.volumeBuffer.fill(0);const touched:number[]=[];
   let attempts=0,logicalSearches=0;const dynamic=this.routing.enabled;
   for(let hi=0;hi<homes.length;hi++){
@@ -71,18 +71,20 @@ export class Traffic {
     if(this.graph.size>=256&&attempts%4===0)yield;attempts++;let path:number[]|null=null;
     accessLoop:for(const start of home.access)for(const goal of w.access){if(dynamic?logicalSearches>=this.config.maxRouteSearches:this.pathfinder.searches>=this.config.maxRouteSearches||this.pathfinder.expanded>=this.config.maxPathExpansions)break accessLoop;logicalSearches++;if((this.graph.size>=256&&logicalSearches%4===0)||(dynamic&&logicalSearches%8===0))yield;const p=this.pathfinder.path(start,goal,dynamic?this.pathfinder.expanded+this.graph.size*this.graph.size+1:this.config.maxPathExpansions);if(p&&(!path||p.length<path.length))path=p;}
     if(!path)continue;
-    const distance=path.length-1,minutes=this.config.accessMinutes*2+distance*this.config.minutesPerRoad;
+    if(this.graph.busOnly.size){let normal:number[]|null=null;for(const start of home.access)for(const goal of w.access){const p=this.carFinder.path(start,goal,this.config.maxPathExpansions);if(p&&(!normal||p.length<normal.length))normal=p;}if(!normal&&this.carFinder.exhausted){this.pending+=remaining;break;}if(normal&&this.config.accessMinutes*2+(normal.length-1)*this.config.minutesPerRoad<=this.config.maxCommuteMinutes)path=normal;}
+
+    if(!this.transit&&path.some(id=>this.graph.busOnly.has(id)))continue;const distance=path.length-1,minutes=this.config.accessMinutes*2+distance*this.config.minutesPerRoad;
     if(minutes>this.config.maxCommuteMinutes)continue;
     const count=Math.min(remaining,available[i]);remaining-=count;available[i]-=count;
     this.routes.push({home:home.id,work:w.id,kind:w.kind,count,path,distance,minutes,served:0});
     for(const id of path){if(!this.volumeBuffer[id])touched.push(id);this.volumeBuffer[id]+=count*this.tripFactor;}
    }
   }
-  let fixedBusVolume=0;const modal:ModalChoice[]=[];const carServed:number[]=[];const transit=this.transit;const useTransit=!!transit&&(this.residentMode||!!transit.stops.size);
+  let fixedBusVolume=0;const modal:ModalChoice[]=[];const carServed:number[]=[];const transit=this.transit;const useTransit=!!transit&&(this.residentMode||!!transit.stops.size||!!this.graph.busOnly.size);
   if(useTransit){
    transit!.begin(homes,workers,this.config.workforceRatio,this.residentPopulation);
    const predicted=(id:number)=>Math.min(this.config.maxCongestionMultiplier,1+this.config.congestionFactor*(this.volumeBuffer[id]/this.capacity(id))**this.config.congestionExponent);
-   for(let ri=0;ri<this.routes.length;ri++){if(ri%8===0)yield;const r=this.routes[ri];let carMinutes=this.config.accessMinutes*2;for(let i=1;i<r.path.length;i++)carMinutes+=this.config.minutesPerRoad*(predicted(r.path[i-1])+predicted(r.path[i]))/2;modal.push(transit!.choose(r.home,r.work,r.count,carMinutes,this.config.minutesPerRoad,id=>1));}
+   for(let ri=0;ri<this.routes.length;ri++){if(ri%8===0)yield;const r=this.routes[ri];let carMinutes=this.config.accessMinutes*2;for(let i=1;i<r.path.length;i++)carMinutes+=this.config.minutesPerRoad*(predicted(r.path[i-1])+predicted(r.path[i]))/2;const canDrive=!r.path.some(id=>this.graph.busOnly.has(id));modal.push(transit!.choose(r.home,r.work,r.count,canDrive?carMinutes:Infinity,this.config.minutesPerRoad,id=>1,canDrive));}
    this.volumeBuffer.fill(0);touched.length=0;
    const add=(id:number,n:number)=>{if(!this.volumeBuffer[id])touched.push(id);this.volumeBuffer[id]+=n;};
    for(let i=0;i<this.routes.length;i++)if(modal[i].car)for(const id of this.routes[i].path)add(id,modal[i].car*this.tripFactor);
@@ -139,6 +141,6 @@ export class Traffic {
  }
  displaySnapshot():Traffic{return Object.assign(Object.create(Object.getPrototypeOf(this)),this,{volumeBuffer:this.volumeBuffer.slice(),multiplierBuffer:this.multiplierBuffer.slice(),routing:Object.assign(Object.create(Object.getPrototypeOf(this.routing)),this.routing,{profile:{...this.routing.profile}})});}
  comparison(){return this.routes.map((r,i)=>({home:r.home,work:r.work,count:r.count,shortest:r.path,paths:(this.pathsDynamic?this.carLegs[i]:this.carCounts[i]?[{path:r.path,count:this.carCounts[i]}]:[]).map(l=>({count:l.count,path:l.path,minutes:this.routing.time(l.path,this.volumeBuffer,id=>this.capacity(id))})),distanceMinutes:this.routing.time(r.path,this.volumeBuffer,id=>this.capacity(id))}));}
- vehicles(minutes=this.displayTime,budgetMs=Infinity):VehiclePose[]{if(this.sampleRevision!==this.graph.revision)return [];const poses:VehiclePose[]=[],started=performance.now();for(const [i,sample] of this.samples.entries()){if(!sample.trajectory){if(performance.now()-started>=budgetMs)continue;const key=this.graph.revision+':'+this.graph.size+':'+sample.path.join(',')+':'+sample.segments.join(',');let route=this.laneCache.get(key);if(!route){if(sample.path.some((id,j)=>j>0&&!this.graph.canTravel(id,sample.path[j-1]))){const back=new Pathfinder(this.graph,64).path(sample.path.at(-1)!,sample.path[0]);if(!back)continue;route=buildDirectedLaneLoop([...sample.path,...back.slice(1)],this.graph.size,id=>this.config.minutesPerRoad*this.multiplier(id),id=>this.graph.adjacent(id).length>=3);}else route=buildLaneLoop(sample.path,this.graph.size,sample.segments.map((end,j)=>end-(j?sample.segments[j-1]:0)),[],id=>this.graph.adjacent(id).length>=3);if(this.laneCache.size>=128)this.laneCache.delete(this.laneCache.keys().next().value!);this.laneCache.set(key,route);}sample.trajectory=route;}for(let v=0;v<sample.count;v++){const time=minutes*VEHICLE_VISUAL.timeScale+(v+.5)*sample.trajectory.duration/sample.count;poses.push(laneVehicle(sample.trajectory,time,'car:'+sample.path[0]+':'+sample.path[sample.path.length-1]+':'+i+':'+v,(['car','van','truck'] as const)[v%3],minutes*VEHICLE_VISUAL.timeScale));}}return poses;}
+ vehicles(minutes=this.displayTime,budgetMs=Infinity):VehiclePose[]{if(this.sampleRevision!==this.graph.revision)return [];const poses:VehiclePose[]=[],started=performance.now();for(const [i,sample] of this.samples.entries()){if(!sample.trajectory){if(performance.now()-started>=budgetMs)continue;const key=this.graph.revision+':'+this.graph.size+':'+sample.path.join(',')+':'+sample.segments.join(',');let route=this.laneCache.get(key);if(!route){if(sample.path.some((id,j)=>j>0&&!this.graph.canTravel(id,sample.path[j-1],'car'))){const back=new Pathfinder(this.graph,64,'car').path(sample.path.at(-1)!,sample.path[0]);if(!back)continue;route=buildDirectedLaneLoop([...sample.path,...back.slice(1)],this.graph.size,id=>this.config.minutesPerRoad*this.multiplier(id),id=>this.graph.adjacent(id).length>=3);}else route=buildLaneLoop(sample.path,this.graph.size,sample.segments.map((end,j)=>end-(j?sample.segments[j-1]:0)),[],id=>this.graph.adjacent(id).length>=3);if(this.laneCache.size>=128)this.laneCache.delete(this.laneCache.keys().next().value!);this.laneCache.set(key,route);}sample.trajectory=route;}for(let v=0;v<sample.count;v++){const time=minutes*VEHICLE_VISUAL.timeScale+(v+.5)*sample.trajectory.duration/sample.count;poses.push(laneVehicle(sample.trajectory,time,'car:'+sample.path[0]+':'+sample.path[sample.path.length-1]+':'+i+':'+v,(['car','van','truck'] as const)[v%3],minutes*VEHICLE_VISUAL.timeScale));}}return poses;}
 
 }

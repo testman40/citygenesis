@@ -6,7 +6,7 @@ export class DynamicRouting {
  tripFactor=2;
  enabled=false;lastMonth=-3;epoch=0;cursor=0;private flowGraphRevision=-1;private flows=new Map<string,Flow>();readonly finder:Pathfinder;
  profile={searches:0,expanded:0,moved:0,rounds:0,workMs:0,potentialBefore:0,potentialAfter:0,exhausted:false,uniqueNetwork:false};
- constructor(readonly graph:RoadNetwork,readonly config:Balance){this.finder=new Pathfinder(graph,config.maxPathCache);}
+ constructor(readonly graph:RoadNetwork,readonly config:Balance){this.finder=new Pathfinder(graph,config.maxPathCache,'car');}
  due(month:number){return this.enabled&&month-this.lastMonth>=P.intervalMonths;}
  setMode(mode:'distance'|'time',month:number){if(this.enabled===(mode==='time'))return;this.enabled=mode==='time';this.lastMonth=month-P.intervalMonths;this.cursor=0;this.flows.clear();}
  private key(r:{home:number;work:number}){return r.home+':'+r.work;}
@@ -14,7 +14,7 @@ export class DynamicRouting {
  private integral(volume:number,capacity:number){const {congestionFactor:f,congestionExponent:e,maxCongestionMultiplier:k,minutesPerRoad:m}=this.config;if(!f||k===1)return volume*m;if(!e)return volume*m*Math.min(k,1+f);const cutoff=capacity*((k-1)/f)**(1/e),a=Math.min(volume,cutoff);return m*(a+f*(a/capacity)**e*a/(e+1)+(volume-a)*k);}
  time(path:number[],volumes:Float64Array,capacity:(id:number)=>number){let minutes=this.config.accessMinutes*2;for(let i=1;i<path.length;i++)minutes+=this.config.minutesPerRoad*(this.multiplier(volumes[path[i-1]],capacity(path[i-1]))+this.multiplier(volumes[path[i]],capacity(path[i])))/2;return minutes;}
  reconcile(routes:Commute[],counts:number[]):CarLeg[][] {
-  const checkPaths=this.flowGraphRevision!==this.graph.revision;const next=new Map<string,Flow>();const result=routes.map((r,i)=>{const count=counts[i];if(!count)return [];const old=this.flows.get(this.key(r));const valid=old?.legs.filter(l=>l.path[0]===r.path[0]&&l.path.at(-1)===r.path.at(-1)&&(!checkPaths||l.path.every((id,j)=>this.graph.has(id)&&(!j||this.graph.adjacent(l.path[j-1]).includes(id)))));
+  const checkPaths=this.flowGraphRevision!==this.graph.revision;const next=new Map<string,Flow>();const result=routes.map((r,i)=>{const count=counts[i];if(!count)return [];const old=this.flows.get(this.key(r));const valid=old?.legs.filter(l=>l.path[0]===r.path[0]&&l.path.at(-1)===r.path.at(-1)&&(!checkPaths||l.path.every((id,j)=>this.graph.allows(id,'car')&&(!j||this.graph.canTravel(l.path[j-1],id,'car')))));
    const weights=valid?.length?valid.map(l=>l.count):[count],parts=apportion(count,weights),legs=(valid?.length?valid:[{path:r.path,count}]).map((l,j)=>({path:l.path,count:parts[j]})).filter(l=>l.count>0);next.set(this.key(r),{home:r.home,work:r.work,legs});return legs;});this.flows=next;this.flowGraphRevision=this.graph.revision;return result;
  }
  *rebalance(routes:Commute[],legs:CarLeg[][],volumes:Float64Array,capacity:(id:number)=>number,month:number):Generator<void>{

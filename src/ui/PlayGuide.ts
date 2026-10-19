@@ -22,8 +22,8 @@ export function nextActions(city:City):GuideAction[]{
     result.push({id:r.id,title:r.title,reason:r.area,action:r.action,mode:panel?undefined:r.mode,panel,...(target?{location:{x:target.x,z:target.z}}:{}),...(r.id==='isolation'?{tool:'road' as const}:{}),...(r.id==='employment'?{tool:'commercial' as const}:{})});
   }
   // Undeveloped zones also need water; lack of buildings must not hide a blocked start.
-  const dry=cells.find(c=>c.zone&&city.networkConnected(c)&&(city.waterUtility?.status(c.z*city.size+c.x).water??city.hydrology?.at(c.z*city.size+c.x)??city.waterRatio)<.8);
-  if(dry&&!result.some(a=>a.id==='water'))result.push({id:'water',title:'住宅・職場へ水道をつなぎましょう',reason:'指定した区画への給水が足りず、建設が進みません。',action:city.waterUtility?'外部水道接続または取水施設を配置し、必要な管をつなぎます。':'取水施設・排水口・上下水道管の接続を確認します。',panel:city.waterUtility?'water-utility-panel':'water-panel',location:{x:dry.x,z:dry.z}});
+  const dry=cells.find(c=>c.zone&&city.networkConnected(c)&&(city.waterUtility?.status(c.z*city.size+c.x).service??city.hydrology?.at(c.z*city.size+c.x)??city.waterRatio)<.8);
+  if(dry&&!result.some(a=>a.id==='water'))result.push({id:'water',title:'給水・排水と上下水道管をつなぎましょう',reason:'給水または排水が足りず、住宅・職場の建設と入居が進みません。',action:city.waterUtility?'給水施設と基本下水処理場（河川では排水口も可）を置き、道路上の上下水道管で住宅までつなぎます。':'取水施設・排水口・上下水道管の接続を確認します。',panel:city.waterUtility?'water-utility-panel':'water-panel',location:{x:dry.x,z:dry.z}});
   const finance=city.finance();
   if(city.funds<0||((city.population>0||city.funds<500)&&finance.forecast.balance<0))result.push({id:'finance',title:city.funds<0?'建設資金が不足':'支出が税収を上回っています',reason:'現在配置の月次収支見込 '+finance.forecast.balance.toLocaleString('ja-JP'),action:'維持費・雇用・税率を確認し、必要な支出から見直します。',panel:'finance-panel'});
   result.sort((a,b)=>{const rank=(x:GuideAction)=>x.id==='bus-recovery'?0:x.id==='isolation'?1:x.id==='water'||x.id==='power'?2:x.id==='finance'&&city.funds<0?3:4;return rank(a)-rank(b);});
@@ -37,7 +37,7 @@ export function nextActions(city:City):GuideAction[]{
 export interface TutorialStep {id:string;title:string;description:string;done:boolean;tool?:Tool;panel?:string}
 export function tutorialSteps(city:City,financeViewed:boolean,undoUsed:boolean):TutorialStep[]{
   const cells=city.snapshot().cells,facts=cityFacts(city,cells);
-  const watered=(kind:'home'|'work')=>cells.some(c=>(kind==='home'?c.zone===1:c.zone===2||c.zone===3)&&city.networkConnected(c)&&(city.waterUtility?.status(c.z*city.size+c.x).water??city.hydrology?.at(c.z*city.size+c.x)??city.waterRatio)>=.8);
+  const watered=(kind:'home'|'work')=>cells.some(c=>(kind==='home'?c.zone===1:c.zone===2||c.zone===3)&&city.networkConnected(c)&&(city.waterUtility?.status(c.z*city.size+c.x).service??city.hydrology?.at(c.z*city.size+c.x)??city.waterRatio)>=.8);
   return [
     {id:'road',title:'1. 道路を敷く',description:city.residents?'地図の端から住宅予定地まで道路をつなぎます。建設時は一時停止します。':'地図上でドラッグして道を作ります。建設時は一時停止します。',done:city.residents?city.residents.gateways(city).length>0:facts.roads>0,tool:'road'},
     {id:'undo',title:'2. 操作を取り消してみる',description:'道路を試しに1マス伸ばして「取り消す」。1回のドラッグをまとめて戻せます。時間を進めると履歴は終了します。',done:undoUsed},

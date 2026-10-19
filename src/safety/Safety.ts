@@ -1,3 +1,4 @@
+import {serviceRangeScale} from '../services/ServiceRanges';
 import {roadTimeField} from '../services/Reach';
 import {Pathfinder} from '../traffic/Pathfinder';
 
@@ -19,8 +20,9 @@ export class Safety {
  readonly profile={workMs:0,expanded:0,rebuilds:0,maxBatchMs:0};
  private pathfinder:Pathfinder;private generation=0;private targets:number[]=[];private evaluated='';private signature='';private fields:{fire:Float64Array;police:Float64Array}={fire:new Float64Array(),police:new Float64Array()};
  constructor(readonly network:RoadNetwork,config:SafetyConfig={...SAFETY_CONFIG}){this.config={...config};this.pathfinder=new Pathfinder(network);}
+ get responseLimit(){return this.config.maxResponseMinutes*serviceRangeScale('police');}
  get maintenance(){let n=0;for(const k of this.stations.values())n+=(k==='fire'?this.config.fireMaintenance:this.config.policeMaintenance)*this.funding[k];return n;}
- coverageAt(id:number,kind:ServiceKind){const time=this.responseAt(id,kind);return time===null?0:(kind==='fire'?this.fireCapacityRatio:this.policeCapacityRatio)*Math.max(0,1-time/this.config.maxResponseMinutes);}
+ coverageAt(id:number,kind:ServiceKind){const time=this.responseAt(id,kind);return time===null?0:(kind==='fire'?this.fireCapacityRatio:this.policeCapacityRatio)*Math.max(0,1-time/this.responseLimit);}
  responseAt(id:number,kind:ServiceKind){const value=this.fields[kind][id];return Number.isFinite(value)?value:null;}
  get penalty(){return this.enabled?(this.fireRisk+this.crimeRisk)*this.config.satisfactionPenalty:0;}
  snapshot():SafetyState{return {version:1,enabled:this.enabled,config:{...this.config},stations:[...this.stations].map(([id,kind])=>({id,kind}))};}
@@ -30,7 +32,7 @@ export class Safety {
  // Same symmetric edge cost as 6-B weighted A*. Two shared shortest-time fields avoid station×building queries.
  private *field(kind:ServiceKind,weights:Float64Array):Generator<void,Float64Array>{
   const starts:number[]=[];for(const [id,k] of this.stations)if(k===kind)for(const road of this.network.adjacent(id))if(this.network.isMain(road)&&!starts.includes(road))starts.push(road);
-  return yield* roadTimeField(this.network,weights,starts,this.targets,this.config.maxResponseMinutes,this.pathfinder,this.generation,this.profile);
+  return yield* roadTimeField(this.network,weights,starts,this.targets,this.responseLimit,this.pathfinder,this.generation,this.profile);
  }
  *update(buildings:SafetyBuilding[],traffic:Traffic,population:number,housing:number):Generator<void>{
   if(!this.enabled&&!this.stations.size)return;
@@ -62,7 +64,7 @@ export class Safety {
   const fc=Math.min(1,nf*this.config.fireCapacity*this.budget.fire/(fireDemand||1)),pc=Math.min(1,np*this.config.policeCapacity*this.budget.police/(policeDemand||1));
   this.fireCapacityRatio=fc;this.policeCapacityRatio=pc;
   const previous=this.results;const results=new Map<number,ServiceResult>();let fs=0,ps=0,frs=0,crs=0,ft=0,pt=0,fw=0,pw=0;
-  for(const r of rows){const fire=Number.isFinite(r.f)?fc*Math.max(0,1-r.f/this.config.maxResponseMinutes):0,police=Number.isFinite(r.p)?pc*Math.max(0,1-r.p/this.config.maxResponseMinutes):0;
+  for(const r of rows){const fire=Number.isFinite(r.f)?fc*Math.max(0,1-r.f/this.responseLimit):0,police=Number.isFinite(r.p)?pc*Math.max(0,1-r.p/this.responseLimit):0;
    const result={fire,police,fireMinutes:Number.isFinite(r.f)?r.f:null,policeMinutes:Number.isFinite(r.p)?r.p:null,fireRisk:r.fr*(1-fire*this.config.riskReduction),crimeRisk:r.cr*(1-police*this.config.riskReduction)};results.set(r.b.id,result);
    fs+=fire*r.fd;ps+=police*r.pd;frs+=result.fireRisk*r.fd;crs+=result.crimeRisk*r.pd;
    if(result.fireMinutes!==null){ft+=r.f*r.fd;fw+=r.fd;}if(result.policeMinutes!==null){pt+=r.p*r.pd;pw+=r.pd;}

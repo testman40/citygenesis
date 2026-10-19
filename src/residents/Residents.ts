@@ -46,7 +46,7 @@ export class Residents {
   if(limit<=0||this.state.arrivals.length>=16||!this.gateways(city).length)return;
   const reserved=new Map<number,number>();for(const a of this.state.arrivals)reserved.set(a.household[1],(reserved.get(a.household[1])??0)+a.household[2]);
   const kind=this.state.nextId%5===0?3:this.state.nextId%3===0?2:1,size=Math.min(Math.floor(limit),kind===1?4:2);if(size<1)return;
-  const candidates=city.residentHomes().filter(home=>home.capacity-this.occupancy(home.id)-(reserved.get(home.id)??0)>=size&&(city.waterUtility?.status(home.id).water??city.hydrology?.at(home.id)??city.waterRatio)>=city.config.growthSupplyThreshold);
+  const candidates=city.residentHomes().filter(home=>home.capacity-this.occupancy(home.id)-(reserved.get(home.id)??0)>=size&&(city.waterUtility?.status(home.id).service??city.hydrology?.at(home.id)??city.waterRatio)>=city.config.growthSupplyThreshold);
   for(const home of candidates.slice(0,128))for(const road of this.access(city,home.id)){const path=this.entryPath(city,road);if(path.length){this.state.arrivals.push({household:[this.state.nextId++,home.id,size,kind],path:[...path],progress:0,blocked:false});return;}}
  }
  leave(count:number){let remaining=count;while(remaining>0&&this.state.households.length){const h=this.state.households.at(-1)!,n=Math.min(h[2],remaining);h[2]-=n;remaining-=n;if(!h[2])this.state.households.pop();}this.reindex();}
@@ -54,7 +54,7 @@ export class Residents {
   if(!Number.isFinite(seconds)||seconds<0)throw new Error('住民の経過時間が不正です');if(!seconds)return false;this.state.time+=seconds/city.config.stepSeconds;let changed=false;
   const retry=this.state.time>=this.retry;if(retry)this.retry=this.state.time+1;
   for(const a of this.state.arrivals){const intact=a.path.every((id,i)=>city.network.allows(id,'car')&&(!i||city.network.canTravel(a.path[i-1],id,'car')));if(!intact||a.blocked){a.blocked=true;if(retry){const current=a.path[Math.min(a.path.length-1,Math.floor(a.progress))];if(city.network.allows(current,'car'))for(const road of this.access(city,a.household[1])){const path=this.route(city,current,road);if(path.length){a.path=[...path];a.progress=0;a.blocked=false;break;}}}if(a.blocked)continue;}
-   a.progress+=seconds*2.5;if(a.progress>=Math.max(1,a.path.length-1)){this.state.households.push(a.household);changed=true;}
+   a.progress+=seconds*2.5;if(a.progress>=Math.max(1,a.path.length-1)){const service=city.waterUtility?.status(a.household[1]).service??city.hydrology?.at(a.household[1])??city.waterRatio;if(service>=city.config.growthSupplyThreshold&&city.powerRatio>=city.config.growthSupplyThreshold){this.state.households.push(a.household);changed=true;}else a.progress=Math.max(1,a.path.length-1)-.0001;}
   }
   if(changed){const arrived=new Set(this.state.households.map(h=>h[0]));this.state.arrivals=this.state.arrivals.filter(a=>!arrived.has(a.household[0]));this.reindex();}return changed;
  }

@@ -1,3 +1,4 @@
+import {serviceRangeScale} from './ServiceRanges';
 import {roadTimeField,buildingTime} from './Reach';
 import {Pathfinder} from '../traffic/Pathfinder';
 import type {City,Cell} from '../simulation/City';
@@ -16,7 +17,7 @@ export function publicFacility(c:City,kind:PublicKind){
  const cost=scenery?(kind==='park'?200:350)*(c.management?.parameters.construction??1):safety?c.safety.config[kind==='fire'?'fireCost':'policeCost']:c.wellness.cost(kind as WellnessKind);
  const maintenance=scenery?(kind==='park'?1:2)*(c.management?.parameters.maintenance??1):safety?c.safety.config[kind==='fire'?'fireMaintenance':'policeMaintenance']*c.budget.funded[kind]:c.wellness.upkeep(kind as WellnessKind);
  const locked=isDevelopmentKind(kind)&&!developmentUnlocked(c,kind)?'レベル'+(DEVELOPMENT_FACILITIES[kind].stage+1)+'で使えるようになります。'+developmentRequirement(c,kind):null;
- const radius=scenery?PARK_EFFECTS[kind as 'park'|'plaza'].radius:(safety?c.safety.config.maxResponseMinutes:publicService(kind)==='medical'?c.wellness.config.medicalMinutes:c.wellness.config.schoolMinutes)/Math.max(.001,c.traffic.config.minutesPerRoad);
+ const radius=scenery?PARK_EFFECTS[kind as 'park'|'plaza'].radius:(safety?c.safety.config.maxResponseMinutes:publicService(kind)==='medical'?c.wellness.config.medicalMinutes:c.wellness.config.schoolMinutes)*serviceRangeScale(kind)/Math.max(.001,c.traffic.config.minutesPerRoad);
  return {kind,name:PUBLIC_FACILITIES[kind],cost,maintenance,locked,radius:Math.min(c.size,radius),goodRadius:scenery?radius:Math.max(1,radius*.2-2/Math.max(.001,c.traffic.config.minutesPerRoad))};
 }
 export function publicBuildReason(c:City,kind:PublicKind){const f=publicFacility(c,kind);return f.locked??(c.funds<f.cost?'資金が足りません（あと'+Math.ceil(f.cost-c.funds).toLocaleString('ja-JP')+'必要です）':null);}
@@ -41,9 +42,10 @@ export function publicSuggestions(c:City,kind:PublicKind,homes=serviceTargets(c,
  const shortlist=[...candidates].sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,24);
  if(kind!=='park'&&kind!=='plaza'){
   const limit=kind==='police'||kind==='fire'?c.safety.config.maxResponseMinutes:publicService(kind)==='medical'?c.wellness.config.medicalMinutes:c.wellness.config.schoolMinutes;
+  const reach=limit*serviceRangeScale(kind);
   const weights=new Float64Array(c.size*c.size);for(const id of c.network.ids())weights[id]=c.traffic.config.minutesPerRoad*c.traffic.multiplier(id);
   const targets=[...new Set(homes.flatMap(h=>c.network.adjacent(h.id).filter(id=>c.network.isMain(id))))],finder=new Pathfinder(c.network);
-  for(const row of shortlist){const starts=c.network.adjacent(row[0]).filter(id=>c.network.isMain(id)),job=roadTimeField(c.network,weights,starts,targets,limit,finder,0,{expanded:0,maxBatchMs:0});let next=job.next();while(!next.done)next=job.next();row[1]=homes.reduce((score,h)=>score+Math.max(0,1-buildingTime(c.network,h.id,next.value!)/limit),0);}
+  for(const row of shortlist){const starts=c.network.adjacent(row[0]).filter(id=>c.network.isMain(id)),job=roadTimeField(c.network,weights,starts,targets,reach,finder,0,{expanded:0,maxBatchMs:0});let next=job.next();while(!next.done)next=job.next();row[1]=homes.reduce((score,h)=>score+Math.max(0,1-buildingTime(c.network,h.id,next.value!)/reach),0);}
  }
  return shortlist.filter(([,score])=>score>0).sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,12).map(([id])=>({x:id%c.size,z:Math.floor(id/c.size)}));
 }

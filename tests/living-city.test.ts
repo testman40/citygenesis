@@ -18,7 +18,7 @@ test('representative pedestrians stay on local roads, are bounded, and sample ac
 });
 
 test('park benefits fall with distance, do not stack, and affect connected homes and housing demand',()=>{
- const parks=new ParkEffects();parks.configure(64,[{id:30*64+30,kind:'park'}]);assert.equal(parks.at(30*64+30),8);assert.ok(parks.at(30*64+34)>0);assert.equal(parks.at(30*64+35),0);const value=parks.at(30*64+31);parks.configure(64,[{id:30*64+30,kind:'park'},{id:30*64+30,kind:'plaza'}]);assert.equal(parks.at(30*64+31),value);
+ const parks=new ParkEffects();parks.configure(64,[{id:30*64+30,kind:'park'}]);assert.equal(parks.at(30*64+30),8);assert.ok(parks.at(30*64+34)>0);assert.ok(parks.at(30*64+38)>0);assert.equal(parks.at(30*64+39),0);const value=parks.at(30*64+31);parks.configure(64,[{id:30*64+30,kind:'park'},{id:30*64+30,kind:'plaza'}]);assert.equal(parks.at(30*64+31),value);
  const city=City.create(64);city.apply(c(26,30),c(35,30),'road');city.apply(c(29,31),c(29,31),'residential');city.apply(c(29,29),c(29,29),'industrial');for(let i=0;i<5;i++)city.step();city.setTaxRate(1.5);const base=city.satisfaction,demand=city.demand.residential;
  city.apply(c(30,31),c(30,31),'park');assert.ok(city.sceneryBonus>0);assert.ok(city.satisfaction>base);assert.ok(city.demand.residential>demand);const snapshot=city.snapshot();assert.deepEqual(City.fromState(snapshot).snapshot(),snapshot);city.apply(c(30,31),c(30,31),'erase');assert.equal(city.satisfaction,base);assert.equal(city.demand.residential,demand);
  city.apply(c(50,50),c(50,50),'park');assert.equal(city.sceneryBonus,0);

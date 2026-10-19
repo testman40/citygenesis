@@ -12,7 +12,7 @@ export class Hydrology {
  static riverCity(size:number){const h=new Hydrology(size);for(let z=0;z<size;z++){const centre=Math.floor(size*.7+Math.sin(z/size*Math.PI*4)*size*.025);for(let dx=-1;dx<=1;dx++)h.river.add(z*size+centre+dx);}return h;}
  neighbors(id:number){const x=id%this.size,z=Math.floor(id/this.size),a:number[]=[];if(z>0)a.push(id-this.size);if(x<this.size-1)a.push(id+1);if(z<this.size-1)a.push(id+this.size);if(x>0)a.push(id-1);return a;}
  riverside(id:number){return !this.river.has(id)&&this.neighbors(id).some(n=>this.river.has(n));}
- setPipe(id:number,value:boolean){if(!Number.isInteger(id)||id<0||id>=this.size*this.size||this.river.has(id))throw Error('管は陸地の地下に敷設してください');if(this.pipes.has(id)===value)return;value?this.pipes.add(id):this.pipes.delete(id);this.revision++;}
+ setPipe(id:number,value:boolean,bridge=false){if(!Number.isInteger(id)||id<0||id>=this.size*this.size||(this.river.has(id)&&!bridge))throw Error('管は陸地の地下に敷設してください');if(this.pipes.has(id)===value)return;value?this.pipes.add(id):this.pipes.delete(id);this.revision++;}
  private *topologySteps(){if(this.topology===this.revision)return;const start=performance.now();this.groups=new Map();this.chunkKeys.clear();let count=0;for(const id of this.pipes){if(this.groups.has(id))continue;const queue=[id];this.groups.set(id,id);for(let i=0;i<queue.length;i++){this.chunkKeys.add(Math.floor(queue[i]%this.size/16)+','+Math.floor(queue[i]/this.size/16));for(const n of this.neighbors(queue[i]))if(this.pipes.has(n)&&!this.groups.has(n)){this.groups.set(n,id);queue.push(n);}if(++count%128===0)yield;}}this.topology=this.revision;this.profile.topologyMs=performance.now()-start;}
  *distributionSteps(){yield* this.topologySteps();}
  distributionGroup(id:number){for(const n of [id,...this.neighbors(id)]){const g=this.groups.get(n);if(g!==undefined)return g;}return undefined;}
@@ -38,10 +38,10 @@ export class Hydrology {
  snapshot():HydrologyState{return {version:1,river:[...this.river],pipes:[...this.pipes],outfalls:[...this.outfalls]};}
  static restore(size:number,state:HydrologyState){const h=new Hydrology(size);for(const id of state.river)h.river.add(id);for(const id of state.pipes)h.pipes.add(id);for(const id of state.outfalls)h.outfalls.add(id);h.revision++;return h;}
 }
-export function validateHydrology(raw:unknown,size:number,occupied:Iterable<number>):HydrologyState {
+export function validateHydrology(raw:unknown,size:number,occupied:Iterable<number>,bridges:Iterable<number>=[]):HydrologyState {
  const v=raw as HydrologyState;if(!v||v.version!==1)throw Error('未対応の上下水道バージョンです');
  const read=(a:unknown)=>{if(!Array.isArray(a)||a.length>size*size||a.some(n=>!Number.isInteger(n)||n<0||n>=size*size)||new Set(a).size!==a.length)throw Error('上下水道の座標が不正です');return [...a] as number[];};
- const state:HydrologyState={version:1,river:read(v.river),pipes:read(v.pipes),outfalls:read(v.outfalls)},river=new Set(state.river),used=new Set(occupied);const h=Hydrology.restore(size,state);
- if([...used,...state.pipes,...state.outfalls].some(id=>river.has(id))||state.outfalls.some(id=>used.has(id)||!h.riverside(id)))throw Error('河川・施設の配置が矛盾しています');
+ const state:HydrologyState={version:1,river:read(v.river),pipes:read(v.pipes),outfalls:read(v.outfalls)},river=new Set(state.river),roads=new Set(bridges),used=new Set(occupied);const h=Hydrology.restore(size,state);
+ if([...used,...state.outfalls].some(id=>river.has(id))||state.pipes.some(id=>river.has(id)&&!roads.has(id))||state.outfalls.some(id=>used.has(id)||!h.riverside(id)))throw Error('河川・施設の配置が矛盾しています');
  return state;
 }

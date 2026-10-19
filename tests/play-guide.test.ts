@@ -43,6 +43,9 @@ test('undeveloped dry zones receive an actionable water warning even before buil
  const action=nextActions(c).find(a=>a.id==='water')!;assert.ok(action);assert.equal(action.panel,'water-utility-panel');assert.ok(action.location);
  assert.equal(tutorialSteps(c,false,false).find(s=>s.id==='utilities')!.done,false);
  c.editTransit(next=>next.waterWorks(cell(26,29),cell(26,29),'externalWater'));
+ c.editTransit(next=>next.roadPipes(Array.from({length:11},(_,i)=>30*64+20+i)));
+ assert.ok(nextActions(c).some(a=>a.id==='water'));
+ c.editTransit(next=>next.waterWorks(cell(26,31),cell(26,31),'sewage'));
  assert.ok(!nextActions(c).some(a=>a.id==='water'));
  assert.equal(tutorialSteps(c,false,false).find(s=>s.id==='utilities')!.done,true);
 });

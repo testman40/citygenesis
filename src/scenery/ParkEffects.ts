@@ -1,4 +1,4 @@
-export const PARK_EFFECTS={park:{radius:4,bonus:8},plaza:{radius:3,bonus:5},demandPerPoint:1.5} as const;
+export const PARK_EFFECTS={park:{radius:8,bonus:8},plaza:{radius:3,bonus:5},demandPerPoint:1.5} as const;
 export class ParkEffects {
  private signature='';private coverage=new Map<number,number>();
  configure(size:number,sources:{id:number;kind:'park'|'plaza'}[]){

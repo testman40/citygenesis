@@ -17,6 +17,7 @@ export class MobilePanels {
    grip.addEventListener('keydown',e=>{if(!this.media.matches||!['ArrowUp','ArrowDown','Home','End'].includes(e.key))return;e.preventDefault();this.height=e.key==='Home'?0:e.key==='End'?innerHeight:panel.getBoundingClientRect().height+(e.key==='ArrowUp'?40:-40);this.layout();});
    new MutationObserver(()=>this.layout()).observe(panel,{attributes:true,attributeFilter:['hidden']});
   }
+  document.addEventListener('city-public-build',()=>{if(this.media.matches){this.height=0;this.layout();}});
   window.addEventListener('resize',()=>this.layout());this.media.addEventListener('change',()=>{this.height=null;this.layout();});this.layout();
  }
  private layout(){

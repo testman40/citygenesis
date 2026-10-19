@@ -218,3 +218,20 @@ body.hud-layout .city-map-badge .map-badge-alert{color:white;font-size:22px;line
  body.hud-layout[data-workspace="info"] #app #hud-camera-controls{right:384px;bottom:32px}
 }
 @media(min-width:1000px){body.hud-layout[data-workspace="info"] #app footer{right:384px}}
+
+/* Public services reuse the contextual dock; other panels keep their placement. */
+body.hud-layout #app #hud-public-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+body.hud-layout #app #hud-public-options button{justify-content:flex-start;text-align:left;min-width:0}
+body.hud-layout #app #hud-public-options button span{min-width:0;overflow-wrap:anywhere}
+body.hud-layout #app #hud-public-options button small{display:block;font-size:12px;font-weight:400;margin-top:3px;color:inherit}
+body.hud-layout #app #hud-public-options button[aria-pressed="true"]{background:#0F6E56;border-color:#0F6E56;color:white}
+body.hud-layout #app #hud-public-options button[aria-disabled="true"]{opacity:.5}
+body.hud-layout #app #hud-public-options .public-coverage-note{grid-column:1/-1;font-size:12px;margin:4px 0}
+@media(max-width:700px){
+ body.hud-layout #app #hud-tools{gap:0;padding-left:2px;padding-right:2px}
+ body.hud-layout #app #hud-tools :is([data-hud-group="residential"],[data-hud-group="commercial"],[data-hud-group="industrial"],[data-hud-group="power"],[data-hud-group="water"],[data-hud-group="transit"]){display:none}
+ body.hud-layout #app #hud-tools :is([data-hud-group="build-menu"],[data-hud-group="infra-menu"]){display:flex}
+ body.hud-layout #app #hud-tools button{flex:1 1 0;min-width:0;width:auto}
+ body.hud-layout #app #hud-tools button[data-hud-group="erase"]{margin-left:0}
+ body.hud-layout #app #hud-tools button span{font-size:12px!important;letter-spacing:-.8px;white-space:nowrap}
+}

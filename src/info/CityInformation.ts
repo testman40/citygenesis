@@ -1,3 +1,4 @@
+import {serviceHomes,publicEnabled,type PublicService} from '../services/PublicFacilities';
 import {urbanDemand} from '../demand/Demand';
 import {employmentInformation,workAccessAt,type WorkIssue} from './EmploymentInformation';
 import type {City} from '../simulation/City';
@@ -38,6 +39,7 @@ export function citizenRequests(c:City):CitizenRequest[]{const r:CitizenRequest[
  if(c.wellness.educationEnabled&&c.population)add('education','education',c.wellness.elementaryCoverage*.6+c.wellness.highSchoolCoverage*.4,'教育が不足','通学未充足の住宅','学校・道路・定員・予算を確認');
  if(c.safety.enabled&&c.buildingCount){add('fire','fire',c.safety.fireCoverage,'消防が不足','消防未充足の建物','消防署・道路・予算を確認');add('police','police',c.safety.policeCoverage,'警察が不足','警察未充足の建物','警察署・道路・予算を確認');}
  const active=[...c.transit.services.values()].filter(s=>s.active),capacity=active.reduce((n,s)=>n+s.capacity,0);if(capacity>0&&c.transit.riders>=capacity*.95&&c.transit.carUsers>0)r.push({id:'bus-capacity',mode:'transit',severity:'blue',title:'バス輸送枠に余裕が少ない',area:'運行中の路線',action:'路線別利用者・配備台数・公共交通予算を確認'});
+ for(const request of r){if(['fire','police','medical','education'].includes(request.id)&&publicEnabled(c,request.id as PublicService)){const homes=serviceHomes(c,request.id as PublicService);if(homes.length){request.count=homes.reduce((n,h)=>n+(c.residents?.atHome(h.id).length||1),0);request.unit=c.residents?'世帯':'住宅区画';}}}
  return r.sort((a,b)=>(a.severity==='red'?0:1)-(b.severity==='red'?0:1)||a.id.localeCompare(b.id));
 }
 

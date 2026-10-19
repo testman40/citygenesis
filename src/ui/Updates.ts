@@ -1,7 +1,10 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>需要グラフ・要望カード仕上げ版</strong></p>
+<p class="updates-current">表示中の版：<strong>公共サービス建設案内版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-19：公共施設を建てやすく</h3><ul>
+<li><strong>公共カテゴリー</strong> — 警察・消防・医療・教育・公園など既存の12施設をまとめ、建設費・月次維持費・解放条件を表示。スマートフォンは7つの道具を1行に並べます。</li>
+<li><strong>建設範囲と要望からの案内</strong> — 建設中は到達距離の目安と未充足の住宅を表示。市民要望から施設を選び、地域と建設候補へ移動できます。地域の要望が解決すると通知します。</li></ul></article>
 <article class="update-entry"><h3>2026-10-19：需要グラフと要望カードの仕上げ</h3><ul>
 <li><strong>メーターと同じ「今」の需要</strong> — 推移グラフの縦軸を100・50・0・−50・−100に固定し、0線を濃くしました。右端を大きな「今」の点として表示し、月が変わる直前の値を履歴に残します。</li>
 <li><strong>商業需要の張り付きを緩和</strong> — 店舗がないだけで100になる計算を調整。上限では「とても高い」と表示します。仕事不足のとき商業・工業をプラスにする条件は維持します。</li>

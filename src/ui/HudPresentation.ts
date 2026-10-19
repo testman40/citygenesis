@@ -1,5 +1,6 @@
+import {isPublicKind} from '../services/PublicFacilities';
 import type {Tool} from '../simulation/City';
-export const TOOL_COLORS={road:'#5F5E5A',residential:'#3B6D11',commercial:'#185FA5',industrial:'#D85A30',power:'#BA7517',water:'#378ADD',transit:'#534AB7',erase:'#A32D2D',info:'#36434D'} as const;
+export const TOOL_COLORS={road:'#5F5E5A',residential:'#3B6D11',commercial:'#185FA5',industrial:'#D85A30',power:'#BA7517',water:'#378ADD',transit:'#534AB7',public:'#0F6E56',erase:'#A32D2D',info:'#36434D'} as const;
 export type HudGroup=keyof typeof TOOL_COLORS;
 export function toolGroup(tool:Tool):HudGroup|null{
  if(tool==='select')return null;
@@ -8,6 +9,7 @@ export function toolGroup(tool:Tool):HudGroup|null{
  if(['power','wind','solar'].includes(tool))return 'power';
  if(['water','externalWater','pipe','pipe-remove','outfall','sewage','advancedSewage'].includes(tool))return 'water';
  if(['depot','bus-stop','bus-remove'].includes(tool))return 'transit';
+ if(isPublicKind(tool))return 'public';
  if(tool==='erase')return 'erase';
  return 'info';
 }

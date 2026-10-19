@@ -1,0 +1,19 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import * as THREE from 'three';
+import {City} from '../src/simulation/City';
+import {PUBLIC_FACILITIES,publicFacility,publicBuildReason,publicCoverage,publicSuggestions,serviceHomes,PublicResolutions} from '../src/services/PublicFacilities';
+import {requestCards} from '../src/info/RequestCards';
+import {citizenRequests,requestTotal} from '../src/info/CityInformation';
+import {toolGroup,TOOL_COLORS} from '../src/ui/HudPresentation';
+import {PublicFacilityView} from '../src/render/PublicFacilityView';
+const at=(x:number,z=30)=>({x,z});
+function town(){const c=City.create(64);c.funds=100000;c.apply(at(10),at(35),'road');c.apply(at(12,31),at(14,31),'residential');c.apply(at(16,29),at(18,29),'industrial');for(let i=0;i<12;i++)c.step();c.funds=100000;c.apply(at(13,29),at(13,29),'fire');return c;}
+
+test('public catalogue reuses all twelve existing tools, actual prices/budgets and level locks',()=>{const c=town();assert.equal(Object.keys(PUBLIC_FACILITIES).length,12);for(const kind of Object.keys(PUBLIC_FACILITIES) as (keyof typeof PUBLIC_FACILITIES)[]){assert.equal(toolGroup(kind),'public');const f=publicFacility(c,kind);assert.ok(f.cost>0&&f.maintenance>0&&f.radius>0);}assert.equal(TOOL_COLORS.public,'#0F6E56');assert.equal(publicFacility(c,'police').cost,c.safety.config.policeCost);assert.equal(publicFacility(c,'clinic').maintenance,c.wellness.upkeep('clinic'));assert.match(publicBuildReason(c,'researchCampus')!,/レベル5/);c.funds=1;assert.match(publicBuildReason(c,'police')!,/あと1,199/);assert.equal(c.tile(at(12,29)).facility,null);});
+
+test('service request buttons select an appropriate facility and counts stay consistent',()=>{const c=town(),before=c.snapshot(),requests=citizenRequests(c),cards=requestCards(c,requests),police=cards.find(r=>r.id==='police')!;assert.equal(police.button.facility,'police');assert.equal(police.button.label,'警察署を建てる');assert.equal(police.count,serviceHomes(c,'police').length);assert.equal(cards.reduce((n,r)=>n+r.count,0),requestTotal(requests));assert.deepEqual(c.snapshot(),before);});
+
+test('recommendations are buildable vacant main-road sites and actual construction resolves a regional request',()=>{const c=town(),tracker=new PublicResolutions();assert.deepEqual(tracker.observe(c),[]);const missing=serviceHomes(c,'police');assert.ok(missing.length);const before=c.snapshot(),sites=publicSuggestions(c,'police');assert.ok(sites.length);for(const site of sites){assert.equal(c.placement(site,'police').ok,true);assert.equal(c.tile(site).networkConnected,true);assert.equal(c.tile(site).zone,null);}assert.deepEqual(c.snapshot(),before);const site=at(13,29);c.apply(site,site,'erase');c.apply(site,site,'police');assert.ok(missing.every(h=>publicCoverage(c,h.id,'police')>=.8));assert.ok(tracker.observe(c).some(s=>s.includes('治安の要望に対応しました')));assert.deepEqual(tracker.observe(c),[]);assert.deepEqual(tracker.observe(City.fromState(c.snapshot())),[]);});
+
+test('temporary range/red-home overlays update after building and disappear on tool change without saved mutations',()=>{const c=town(),scene=new THREE.Scene(),view=new PublicFacilityView(scene),before=c.snapshot();view.select('police');view.point(at(13,29));view.update(c);const group=scene.getObjectByName('public-facility-coverage')!;assert.ok(group.children.some(n=>n.userData.publicRange==='preview'));assert.ok(group.children.some(n=>n.userData.publicUnserved>0));assert.deepEqual(c.snapshot(),before);c.apply(at(13,29),at(13,29),'erase');c.apply(at(13,29),at(13,29),'police');view.select('police');view.update(c);assert.ok(group.children.some(n=>n.userData.publicRange==='existing'));assert.ok(!group.children.some(n=>n.userData.publicUnserved>0));view.select('select');assert.equal(group.children.length,0);});

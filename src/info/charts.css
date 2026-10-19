@@ -24,3 +24,14 @@ body.hud-layout #app .city-chart .chart-note,body.hud-layout #app .city-chart .c
 body.hud-layout #app #chart-map-details{margin:12px 0;padding-top:4px}
 body.hud-layout #app #information-panel:is([data-section="residents"],[data-section="requests"]) #chart-map-details{display:none}
 @media(min-width:1000px){body.hud-layout #app :is(#city-manage-charts,#city-growth-charts){grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+body.hud-layout #app .facility-economics{min-width:0;width:100%;margin:14px 0;color:#17252b}
+body.hud-layout #app .facility-economics label{display:block;font-size:13px;margin:10px 0}
+body.hud-layout #app .facility-economics select{display:block;width:100%;min-width:0;max-width:100%;font-size:13px;margin-top:5px}
+body.hud-layout #app .facility-economics p,body.hud-layout #app .facility-economics li{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+body.hud-layout #app .facility-economics .city-chart{margin:12px 0}
+body.hud-layout #app .facility-detail,body.hud-layout #app .facility-advice{border:1px solid #cbd8df;background:#fff;border-radius:10px;padding:12px;margin:12px 0;min-width:0}
+body.hud-layout #app .facility-advice{border-left:4px solid #0F6E56}
+body.hud-layout #app .facility-economics h4{font-size:14px;margin:0 0 8px}
+body.hud-layout #app .facility-economics button{min-height:44px;font-size:13px;border:1px solid #9cb5c2;border-radius:6px;background:#edf6fa;color:#183a4b;padding:8px 12px;cursor:pointer}
+body.hud-layout #app .facility-economics ul{padding-left:20px}

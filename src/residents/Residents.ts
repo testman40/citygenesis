@@ -73,16 +73,33 @@ export class Residents {
   const home={x:person.home%city.size+.5,z:Math.floor(person.home/city.size)+.5},arrival=this.state.arrivals.find(a=>a.household[0]===person.household);
   if(arrival){const fraction=arrival.progress/Math.max(1,arrival.path.length-1),vehicle=this.car(city,arrival.path,fraction,'arrival:'+arrival.household[0]);return {label:arrival.blocked?'転入道路の復旧待ち':'マップ外から転入中',mode:'転入車',...(vehicle??this.pose(city,arrival.path,fraction)),path:arrival.path,progress:fraction,moving:!arrival.blocked,vehicle};}
   const hour=time%24,offset=(person.household*17+person.index*13)%60/60,job=this.job(city,person);let target:number|undefined,mode='徒歩',start=10+offset,end=13+offset,label='外出';
-  if(job?.employed){target=job.route.work;mode=job.mode;start=7+offset;end=18+offset;label='勤務';}
-  else{const kind=person.group==='子供'?'school':person.group==='高齢者'?'park':'shop';let best=Infinity;for(const place of this.places.filter(p=>p.kind===kind)){const distance=Math.abs(place.id%city.size-person.home%city.size)+Math.abs(Math.floor(place.id/city.size)-Math.floor(person.home/city.size));if(distance<best){best=distance;target=place.id;}}label=kind==='school'?'通学':kind==='park'?'公園で過ごす':'買い物';if(kind==='school'){start=8+offset;end=15+offset;}}
+  if(job?.employed){target=job.route.work;mode=job.mode;start=7+offset*2;end=18+offset;label='勤務';}
+  if(!job?.employed||hour>=19+offset){
+   target=undefined;
+   const kind=person.group==='子供'?'school':person.group==='高齢者'?'park':job?.employed&&person.household%3===0?'park':'shop';
+   let best=Infinity;
+   for(const place of this.places.filter(p=>p.kind===kind)){
+    const distance=Math.abs(place.id%city.size-person.home%city.size)+Math.abs(Math.floor(place.id/city.size)-Math.floor(person.home/city.size));
+    if(distance<best){best=distance;target=place.id;}
+   }
+   label=kind==='school'?'通学':kind==='park'?'公園で過ごす':'買い物';
+   start=job?.employed?19+offset:8+offset*10;end=start+3;
+   if(kind==='school'){start=8+offset;end=15+offset;}
+   mode='徒歩';
+   if(target!==undefined&&person.group==='大人'){
+    const from=this.access(city,person.home),to=this.access(city,target);
+    const drive=from.length&&to.length?this.route(city,from[0],to[0],'car'):[];
+    if(drive.length>10&&drive.length<=31)mode='車';
+   }
+  }
   const base:Activity={label:person.group==='大人'&&!job?.employed?'在宅・求職':'在宅',mode:'滞在',...home,path:[],progress:0,moving:false,work:job?.route.work};
   if(target===undefined||hour<start)return base;
   const from=this.access(city,person.home)[0],to=this.access(city,target)[0];if(from===undefined||to===undefined)return {...base,label:'外出先への道路待ち'};
-  const outward=job?.employed?job.path:this.route(city,from,to,'walk');if(!outward.length||outward.some((id,i)=>i>0&&!city.network.canTravel(outward[i-1],id)))return {...base,label:'通行経路なし'};
-  const travel=Math.min(2,Math.max(.4,.07*(mode==='車'?outward.reduce((sum,id)=>sum+40/city.network.profile(id).speed,0):mode==='自転車'?outward.length*2:outward.length))),footKey=city.network.revision+':'+person.home+':'+target+':'+person.id,day=Math.floor(time/24),pendingOut=arguments.length<3&&mode==='徒歩'&&this.walkers.get(footKey+':false:'+day),pendingReturn=arguments.length<3&&mode==='徒歩'&&this.walkers.get(footKey+':true:'+day),finishing=!!pendingOut&&pendingOut.progress<1;if(hour>=end&&(!pendingReturn||pendingReturn.progress>=1)&&!finishing)return base;if(hour>=start+travel&&hour<end-travel&&!finishing)return {...base,label,mode:'滞在',x:target%city.size+.5,z:Math.floor(target/city.size)+.5,path:outward,progress:1};
+  const commuting=label==='勤務',outward=commuting?job!.path:this.route(city,from,to,mode==='車'?'car':'walk');if(!outward.length||outward.some((id,i)=>i>0&&!city.network.canTravel(outward[i-1],id)))return {...base,label:'通行経路なし'};
+  const travel=Math.min(2,(end-start)/3,Math.max(.4,.07*(mode==='車'?outward.reduce((sum,id)=>sum+40/city.network.profile(id).speed,0):mode==='自転車'?outward.length*2:outward.length))),footKey=city.network.revision+':'+person.home+':'+target+':'+person.id,day=Math.floor(time/24),pendingOut=arguments.length<3&&mode==='徒歩'&&this.walkers.get(footKey+':false:'+day),pendingReturn=arguments.length<3&&mode==='徒歩'&&this.walkers.get(footKey+':true:'+day),finishing=!!pendingOut&&pendingOut.progress<1;if(hour>=end&&(!pendingReturn||pendingReturn.progress>=1)&&!finishing)return base;if(hour>=start+travel&&hour<end-travel&&!finishing)return {...base,label,mode:'滞在',x:target%city.size+.5,z:Math.floor(target/city.size)+.5,path:outward,progress:1};
   const returning=hour>=end-travel&&!finishing,path=returning?this.route(city,outward.at(-1)!,outward[0],mode==='車'?'car':mode==='自転車'?'bike':'walk'):outward;if(!path.length)return {...base,label:'帰宅経路なし'};
   const fraction=(hour-(returning?end-travel:start))/travel;if(mode==='徒歩'){const key=city.network.revision+':'+person.home+':'+target;let foot=this.footPaths.get(key);if(!foot){foot=sidewalkPath(city.network,person.home,target);if(this.footPaths.size>=256)this.footPaths.clear();this.footPaths.set(key,foot);}const journey=returning?foot.slice().reverse().map((p,i,a)=>({...p,crossing:a[i-1]?.crossing})):foot,walkerKey=key+':'+person.id+':'+returning+':'+Math.floor(time/24);let walker=this.walkers.get(walkerKey);if(!walker){if(this.walkers.size>=256)this.walkers.clear();walker=new FootWalker();this.walkers.set(walkerKey,walker);}const pose=arguments.length>2?footPose(journey,fraction,()=>true):walker.step(journey,fraction,walkerKey,id=>city.network.pedestrianGreen(id));if(!pose)return {...base,label:'歩道・横断歩道の接続待ち'};return {...base,...pose,label:pose.waiting?'横断待ち':returning?'帰宅中':label==='勤務'?'通勤中':label==='通学'?'通学中':label+'へ移動',mode,path,progress:arguments.length>2?Math.max(0,Math.min(1,fraction)):walker.progress,moving:!pose.waiting};}const displayPath=mode==='徒歩'?(returning?[target,...path,person.home]:[person.home,...path,target]):path,vehicle=(mode==='車'||mode==='自転車')?this.car(city,path,fraction,'resident:'+person.id,mode==='自転車'):undefined;
   return {...base,label:returning?'帰宅中':label==='勤務'?'通勤中':label==='通学'?'通学中':label+'へ移動',mode,...(vehicle??this.pose(city,displayPath,fraction)),path:displayPath,progress:fraction,moving:true,vehicle};
  }
- vehicles(city:City){const result:VehiclePose[]=[];for(const a of this.state.arrivals){const p=this.members(a.household,true)[0],v=this.activity(city,p).vehicle;if(v)result.push(v);}const stride=Math.max(1,Math.ceil(this.state.households.length/64));for(let i=0;i<this.state.households.length&&result.length<95;i+=stride)for(const person of this.members(this.state.households[i])){if(person.group!=='大人'||!['車','自転車'].includes(this.job(city,person)?.mode??''))continue;const v=this.activity(city,person).vehicle;if(v)result.push(v);if(result.length>=95)break;}if(this.tracked){const p=this.person(this.tracked),v=p&&this.activity(city,p).vehicle;if(v&&!result.some(r=>r.id===v.id))result.unshift(v);}return result.slice(0,96);}
+ vehicles(city:City){const result:VehiclePose[]=[];for(const a of this.state.arrivals){const p=this.members(a.household,true)[0],v=this.activity(city,p).vehicle;if(v)result.push(v);}const stride=Math.max(1,Math.ceil(this.state.households.length/64));for(let i=0;i<this.state.households.length&&result.length<95;i+=stride)for(const person of this.members(this.state.households[i])){if(person.group!=='大人')continue;const v=this.activity(city,person).vehicle;if(v)result.push(v);if(result.length>=95)break;}if(this.tracked){const p=this.person(this.tracked),v=p&&this.activity(city,p).vehicle;if(v&&!result.some(r=>r.id===v.id))result.unshift(v);}return result.slice(0,96);}
 }

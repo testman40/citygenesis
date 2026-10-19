@@ -27,3 +27,18 @@ export function personPose(person:StreetPerson,time:number){
  const phase=(time*.23+person.seed*.371)%2,t=phase<1?phase:2-phase;
  return {x:person.x+(person.toX-person.x)*t,z:person.z+(person.toZ-person.z)*t,angle:Math.atan2(person.toX-person.x,person.toZ-person.z)+(phase<1?0:Math.PI),stride:person.waiting?0:Math.sin(time*9+person.seed)*.45};
 }
+
+/** Nearby real residents plus a bounded citywide sample for incoming commuters. */
+export function streetResidents(city:City,focus:{x:number;z:number},radius=18){
+ const r=city.residents;if(!r)return [];
+ const homes:{id:number;distance:number}[]=[];
+ for(let z=Math.max(0,Math.floor(focus.z-radius));z<=Math.min(city.size-1,Math.ceil(focus.z+radius));z++)for(let x=Math.max(0,Math.floor(focus.x-radius));x<=Math.min(city.size-1,Math.ceil(focus.x+radius));x++){
+  const id=z*city.size+x;if(r.occupancy(id))homes.push({id,distance:Math.hypot(x-focus.x,z-focus.z)});
+ }
+ homes.sort((a,b)=>a.distance-b.distance);
+ const people=new Map<string,ReturnType<typeof r.members>[number]>();
+ for(const home of homes)for(const h of r.atHome(home.id))for(const p of r.members(h))if(people.size<96)people.set(p.id,p);
+ const stride=Math.max(1,Math.ceil(r.households.length/32));
+ for(let i=0;i<r.households.length&&people.size<PEOPLE_LIMIT;i+=stride)for(const p of r.members(r.households[i]))if(people.size<PEOPLE_LIMIT)people.set(p.id,p);
+ return [...people.values()];
+}

@@ -86,7 +86,7 @@ export function validateSave(input:unknown):SaveData {
  const occupiedBay=new Set<number>(),occupied=new Set([...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(t=>t.id),...(city.wellness?.facilities??[]).map(t=>t.id),...(city.transit?.infrastructure?.depots??[]).map(t=>t.id),...(city.energy?.plants??[]).map(t=>t.id),...(city.sanitation?.plants??[]).map(t=>t.id),...(city.waterUtility?.externals??[]),...(city.hydrology?.river??[]),...(city.hydrology?.outfalls??[])]);
  for(const stop of city.transit?.stops??[]){if(!stop.bay)continue;const kind=traffic.busOnly?.includes(stop.road)?'bus':traffic.roads?.find(([id])=>id===stop.road)?.[1]??'general',profile=ROAD_KINDS[kind];if(profile.lanes<2||!profile.walk||!cells.some(t=>t.road&&t.z*size+t.x===stop.road))throw Error('待避スペースの道路種別が不正です');for(const c of bayCells(stop.road,size,stop.heading??1)){const id=c.z*size+c.x;if(c.x<0||c.z<0||c.x>=size||c.z>=size||occupied.has(id)||occupiedBay.has(id))throw Error('待避スペースが空き地に収まりません');occupiedBay.add(id);}}
  if(c.environment!==undefined){if(s.version!==4&&s.version!==5)throw Error('環境データには保存バージョン4/5が必要です');city.environment=validateEnvironment(c.environment,size,city.month,city.hydrology?.river??[],new Set(cells.filter(t=>t.zone===1&&t.level>0).map(t=>t.z*size+t.x)));}
- if(c.statistics!==undefined)city.statistics=validateStatistics(c.statistics,city.month);
+ if(c.statistics!==undefined)city.statistics=validateStatistics(c.statistics,city.month,city.size);
  const k=obj(s.clock);if(![0,1,2,4].includes(k.speed as number))throw new Error('時間速度が不正です');
  const clock={speed:k.speed as Speed,accumulated:number(k.accumulated,0,config.stepSeconds)};
  if(clock.accumulated>=config.stepSeconds)throw new Error('時間の端数が不正です');

@@ -1,3 +1,4 @@
+import {FacilityEconomicsPanel} from '../ui/FacilityEconomicsPanel';
 import {DemandMeter} from '../ui/DemandMeter';
 import {urbanDemand,demandAdvice} from '../demand/Demand';
 import type {City} from '../simulation/City';
@@ -14,12 +15,13 @@ const svgNode=(tag:string,attrs:Record<string,string|number>,text?:string)=>{con
 /** DOM/SVG presentation only: history is recorded by the simulation at monthly commit. */
 export class CityCharts {
  private demandMeter=new DemandMeter(true);private demandCard=node('section');private demandHistory=node('div');private demandAdvice=node('p');private demandCity:City|undefined;private hintSeen=false;private hintCandidate:HTMLElement|undefined;private hintObserver=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting))this.markHintSeen();});
- private refreshing=false;
+ private refreshing=false;private facilities:FacilityEconomicsPanel;
  private roots=new Map<string,HTMLElement>();private signatures=new Map<string,string>();private selection=new Map<string,string>();private city:City|undefined;
  constructor(){
   try{this.hintSeen=localStorage.getItem('citygenesis-chart-hint')==='seen';}catch{}
   this.demandCard.className='city-chart';this.demandCard.append(node('h3','住宅・商業・工業の需要'),this.demandMeter.root);this.demandAdvice.className='city-chart demand-advice';
   for(const [key,id] of [['info','city-info-charts'],['manage','city-manage-charts'],['goals','city-growth-charts']]){const root=node('section');root.id=id;root.className='city-charts';root.setAttribute('aria-label','都市統計グラフ');this.roots.set(key,root);if(key==='info')document.getElementById('info-core')!.before(root);else document.getElementById('workspace-'+key)!.prepend(root);new ResizeObserver(()=>{if(this.city)this.refresh(this.city);}).observe(root);}
+  this.facilities=new FacilityEconomicsPanel((model,width)=>this.figure(model,width,false));
   const detail=node('details');detail.id='chart-map-details';detail.append(node('summary','地図ビュー・現在地の詳細'));const core=document.getElementById('info-core')!;core.before(detail);detail.append(core);
  }
  private markHintSeen(){this.hintSeen=true;this.hintObserver.disconnect();try{localStorage.setItem('citygenesis-chart-hint','seen');}catch{}}
@@ -27,6 +29,7 @@ export class CityCharts {
  refresh(c:City){if(this.refreshing)return;this.refreshing=true;try{this.paint(c);}finally{this.refreshing=false;}}
  private paint(c:City){
   this.refreshDemand(c);
+  this.facilities.refresh(c);
   this.city=c;const category=document.body.dataset.workspace??'';for(const [key,root] of this.roots)root.hidden=key!==category;
   const root=this.roots.get(category);if(!root)return;const section=category==='info'?document.getElementById('information-panel')!.dataset.section??'requests':category;
   const width=Math.floor(root.clientWidth);if(width<=0)return;const firstColumn=parseFloat(getComputedStyle(root).gridTemplateColumns.split(' ')[0]),chartWidth=Math.floor(Number.isFinite(firstColumn)?firstColumn:width);const models=chartModels(c,section),signature=JSON.stringify([section,width,chartWidth,models]);if(this.signatures.get(category)===signature)return;this.signatures.set(category,signature);
@@ -34,9 +37,9 @@ export class CityCharts {
   const focused=root.contains(document.activeElement)?(document.activeElement as HTMLElement).closest<HTMLElement>('[data-chart-key]')?.dataset.chartKey:undefined;
   if(section==='demand'){if(!root.contains(this.demandCard))root.replaceChildren(this.demandCard,this.demandHistory,this.demandAdvice);this.demandHistory.replaceChildren(...models.map(model=>this.figure(model,chartWidth)));}else root.replaceChildren(...models.map(model=>this.figure(model,chartWidth)));if(section==='workAccess'){const guide=node('section');guide.className='city-chart';guide.append(node('h3','仕事への近さ'),node('p','緑：職場へ通いやすい　青：遠い　赤：遠い・接続がない'),node('p','徒歩は道路で10マス、車は30マスまで。運行中のバスは自宅と職場から停留所まで徒歩5マス以内なら距離制限なし。'),node('p','道路の進行方向・通行できる種類を反映。色は職場への到達しやすさで、空き求人の保証ではありません。満員の状況と建設候補は「市民要望」で確認できます。'));root.append(guide);}if(focused)root.querySelector<HTMLElement>(`[data-chart-key="${focused}"] [tabindex], [data-chart-key="${focused}"] button`)?.focus({preventScroll:true});
  }
- private figure(m:ChartModel,width:number){
+ private figure(m:ChartModel,width:number,hintAllowed=true){
   const figure=node('figure');figure.className='city-chart';figure.dataset.chartKey=m.id;figure.setAttribute('aria-label',m.title);const caption=node('figcaption');caption.append(node('h3',m.title));const metric=node('div');metric.className='chart-metric';const strong=node('strong',headline(m.current));strong.className=m.current===null?'':m.bad?'chart-bad':'chart-good';metric.append(node('span',m.currentLabel),strong,node('span',m.unit));if(!m.hideCurrent)caption.append(metric);figure.append(caption);
-  const hint=!this.hintSeen&&!this.hintCandidate&&(m.kind==='bar'?(m.bars??[]).some(p=>p.value!==null):(m.series??[]).some(s=>s.points.some(p=>p.value!==null)));const readout=node('output',hint?'指で触れる／マウスを重ねると正確な値':'');readout.hidden=!hint;if(hint){this.hintCandidate=readout;this.hintObserver.observe(readout);}readout.className='chart-readout';readout.setAttribute('aria-live','polite');const show=(key:string,text:string)=>{if(!this.hintSeen)this.markHintSeen();if(this.hintCandidate&&this.hintCandidate!==readout){this.hintCandidate.hidden=true;this.hintCandidate.textContent='';}this.selection.set(m.id,key);readout.hidden=false;readout.textContent=text;};
+  const hint=hintAllowed&&!this.hintSeen&&!this.hintCandidate&&(m.kind==='bar'?(m.bars??[]).some(p=>p.value!==null):(m.series??[]).some(s=>s.points.some(p=>p.value!==null)));const readout=node('output',hint?'指で触れる／マウスを重ねると正確な値':'');readout.hidden=!hint;if(hint){this.hintCandidate=readout;this.hintObserver.observe(readout);}readout.className='chart-readout';readout.setAttribute('aria-live','polite');const show=(key:string,text:string)=>{if(!this.hintSeen)this.markHintSeen();if(this.hintCandidate&&this.hintCandidate!==readout){this.hintCandidate.hidden=true;this.hintCandidate.textContent='';}this.selection.set(m.id,key);readout.hidden=false;readout.textContent=text;};
   if(m.kind==='bar')this.bars(figure,m,show);else this.lines(figure,m,width,show);
   figure.append(readout);if(m.note)figure.append(Object.assign(node('p',m.note),{className:'chart-note'}));return figure;
  }

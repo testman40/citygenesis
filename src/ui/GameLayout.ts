@@ -1,3 +1,7 @@
+import {LockedTools,unavailable} from './LockedTools';
+import {DemandMeter} from './DemandMeter';
+import {urbanDemand,DEMAND_ZONES} from '../demand/Demand';
+import './demand.css';
 import type {City,Tool} from '../simulation/City';
 import type {Workspace} from './Workspace';
 import {toolIcon} from '../Presentation';
@@ -14,9 +18,10 @@ const PALETTES:Partial<Record<HudGroup,Array<[Tool,string]>>>={power:[['power','
 /** Reparents the existing live controls; all construction and financial commands stay in main. */
 export class GameLayout {
  private lastSpeed=1;private folder:Folder|null=null;private compact=matchMedia('(max-width:480px)');
+ private demandMeter:DemandMeter;private demandCity:City|undefined;
  private tool:Tool='select';private group:HudGroup|null=null;private tip:HTMLElement;private settings:HTMLElement;private notices:NoticeCenter;
  constructor(private workspace:Workspace,private select:(tool:Tool)=>void,private city:()=>City){
-  document.body.classList.add('hud-layout');const app=el('app'),header=document.querySelector('header')!;header.id='hud-topbar';header.querySelector('.brand')!.innerHTML='<b>CITY GENESIS</b>';
+  document.body.classList.add('hud-layout');const app=el('app'),header=document.querySelector('header')!;header.id='hud-topbar';const demand=document.createElement('button');demand.id='hud-demand';demand.type='button';demand.setAttribute('aria-label','住宅・商業・工業の需要を表示');this.demandMeter=new DemandMeter(false,demand);header.querySelector('.stats')!.append(demand);demand.onclick=()=>document.dispatchEvent(new Event('city-demand-open'));header.querySelector('.brand')!.innerHTML='<b>CITY GENESIS</b>';
   const oldLevel=el('city-growth-open'),level=document.createElement('span');level.id='city-growth-open';level.className='hud-level';level.textContent=oldLevel.textContent;oldLevel.replaceWith(level);
   const playback=el('playback');header.append(playback);playback.querySelector('div')!.insertAdjacentHTML('beforeend','<button id="hud-speed-cycle" type="button" aria-label="速度を切り替える">1×</button>');el('hud-speed-cycle').onclick=()=>{const next=this.lastSpeed===1?2:this.lastSpeed===2?4:1;document.querySelector<HTMLButtonElement>(`[data-speed="${next}"]`)!.click();this.refresh();};const actions=document.createElement('div');actions.id='hud-header-actions';header.append(actions);
   for(const [id,label,icon] of [['undo-build','取り消す','undo'],['redo-build','やり直す','redo']]){const b=el<HTMLButtonElement>(id);b.innerHTML=toolIcon(icon);b.setAttribute('aria-label',label);actions.append(b);}
@@ -34,7 +39,7 @@ export class GameLayout {
   dock.append(el('status'));const road=el('road-panel');const action=el('road-action');action.hidden=true;action.setAttribute('aria-hidden','true');action.closest('label')!.replaceWith(action);
   const favorites=document.createElement('div');favorites.className='hud-road-profiles hud-tool-options';favorites.innerHTML=[['general','2車線'],['four','4車線'],['bus','バス専用']].map(([id,label])=>`<button type="button" data-hud-profile="${id}" ${id==='bus'?'data-profile="bus"':''}>${toolIcon(id==='bus'?'bus-road':'road')}<span>${label}</span></button>`).join('');road.prepend(favorites);
   const extra=document.createElement('details');extra.id='hud-road-extra';extra.innerHTML='<summary>その他の道路・橋・横断歩道</summary>';const catalog=el<HTMLDetailsElement>('road-catalog');extra.append(catalog);catalog.open=true;extra.insertAdjacentHTML('beforeend','<div class="hud-tool-options"><button type="button" data-hud-tool="bridge">'+toolIcon('bridge')+'橋</button></div>');road.append(extra);
-  const area=el('hud-notices');this.notices=new NoticeCenter(area);for(const id of ['guide-panel','resident-tracking','scenario-current','operation-hint']){const n=document.getElementById(id);if(n)area.append(n);}this.tip=el('hud-tool-tip');
+  const area=el('hud-notices');this.notices=new NoticeCenter(area);new LockedTools();document.addEventListener('city-ui-notice',e=>this.notices.push((e as CustomEvent<string>).detail));for(const id of ['guide-panel','resident-tracking','scenario-current','operation-hint']){const n=document.getElementById(id);if(n)area.append(n);}this.tip=el('hud-tool-tip');
   el('hud-settings').onclick=()=>this.toggleSettings(this.settings.hidden);
   document.addEventListener('pointerdown',e=>{if(!this.settings.hidden&&!this.settings.contains(e.target as Node)&&!el('hud-settings').contains(e.target as Node))this.toggleSettings(false);});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!this.settings.hidden){this.toggleSettings(false);el('hud-settings').focus();}});
   el('hud-tools').addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('[data-hud-group]');if(b)this.choose(b.dataset.hudGroup as RailGroup);});
@@ -55,9 +60,10 @@ export class GameLayout {
   for(const p of Array.from(document.querySelectorAll<HTMLElement>('[data-hud-palette]')))p.hidden=p.dataset.hudPalette!==this.group;
   el('hud-zone-options').hidden=!['residential','commercial','industrial'].includes(this.group??'');el('hud-erase-options').hidden=this.group!=='erase';el('hud-transit-options').hidden=this.group!=='transit';el('hud-facility-options').hidden=this.group!=='info';this.refresh();
  }
- refresh(){const running=document.querySelector<HTMLButtonElement>('[data-speed].active'),speed=Number(running?.dataset.speed??0);if(speed)this.lastSpeed=speed;el('hud-speed-cycle').textContent=this.lastSpeed+'×';el('hud-speed-cycle').setAttribute('aria-label','速度 '+this.lastSpeed+'倍：押すと'+(this.lastSpeed===1?2:this.lastSpeed===2?4:1)+'倍');el('hud-speed-cycle').setAttribute('aria-pressed',String(speed>0));el('hud-speed-cycle').classList.toggle('active',speed>0);el('city-growth-open').removeAttribute('aria-label');el('city-growth-open').title=el('city-growth-open').title.split('/')[0].trim()+' / 最高到達段階';const c=this.city(),profile=el<HTMLSelectElement>('road-kind').value as RoadKind,p=ROAD_KINDS[profile];el('hud-cost').textContent=this.group==='road'?(this.tool==='bridge'?'川上1マス '+c.config.roadCost*12:this.tool==='crossing'?'追加20 / 撤去無料':'1マス '+c.config.roadCost*p.cost):this.group==='erase'?'撤去無料':['residential','commercial','industrial'].includes(this.group??'')?'1区画 '+c.config.zoneCost:'';
+ refreshDemand(c:City){this.demandMeter.update(urbanDemand(c),this.demandCity!==c);this.demandCity=c;}
+ refresh(){this.refreshDemand(this.city());const running=document.querySelector<HTMLButtonElement>('[data-speed].active'),speed=Number(running?.dataset.speed??0);if(speed)this.lastSpeed=speed;el('hud-speed-cycle').textContent=this.lastSpeed+'×';el('hud-speed-cycle').setAttribute('aria-label','速度 '+this.lastSpeed+'倍：押すと'+(this.lastSpeed===1?2:this.lastSpeed===2?4:1)+'倍');el('hud-speed-cycle').setAttribute('aria-pressed',String(speed>0));el('hud-speed-cycle').classList.toggle('active',speed>0);el('city-growth-open').removeAttribute('aria-label');el('city-growth-open').title=el('city-growth-open').title.split('/')[0].trim()+' / 最高到達段階';const c=this.city(),profile=el<HTMLSelectElement>('road-kind').value as RoadKind,p=ROAD_KINDS[profile];el('hud-cost').textContent=this.group==='road'?(this.tool==='bridge'?'川上1マス '+c.config.roadCost*12:this.tool==='crossing'?'追加20 / 撤去無料':'1マス '+c.config.roadCost*p.cost):this.group==='erase'?'撤去無料':['residential','commercial','industrial'].includes(this.group??'')?'1区画 '+c.config.zoneCost:'';
   for(const b of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-hud-profile]')))b.setAttribute('aria-pressed',String(b.dataset.hudProfile===profile));
-  for(const b of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-hud-tool]'))){b.setAttribute('aria-pressed',String(b.dataset.hudTool===this.tool));if(b.dataset.hudTool==='advancedSewage')b.disabled=!c.sanitation?.unlocked('advancedSewage');}
+  for(const b of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-hud-tool]'))){b.setAttribute('aria-pressed',String(b.dataset.hudTool===this.tool));if(b.dataset.hudTool==='advancedSewage')unavailable(b,c.sanitation?.unlocked('advancedSewage')?null:'高度下水処理場はレベル2「小さな町」で解放されます。水質管理の開始も必要です。');}
   for(const b of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-hud-erase]')))b.setAttribute('aria-pressed',String((b.dataset.hudErase==='roads')===(this.tool==='road')));
  }
 }

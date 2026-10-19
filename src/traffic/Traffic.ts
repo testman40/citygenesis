@@ -1,3 +1,4 @@
+import {roadDistance,COMMUTE_REACH} from './CommuteAccess';
 import {roadLanes} from './RoadLanes';
 import type {RoadKind} from '../roads/profiles';
 import {buildDirectedLaneLoop,buildLaneLoop,laneVehicle,type LaneLoop} from './LanePath';
@@ -59,7 +60,7 @@ export class Traffic {
  *solveSteps(homes:Home[],workplaces:Workplace[],workers:number):Generator<void,Set<number>>{
   this.routing.tripFactor=this.tripFactor;const same=this.inputsMatch(homes,workplaces,workers);
   if(same&&!(this.allowRebalance&&this.routing.due(this.routingMonth)))return new Set();
-  const previous=this.volumes,changed=new Set<number>();if(!this.ranksMatch(workplaces)){this.ranks.clear();this.rankEntries=0;this.idOrder=Uint32Array.from(workplaces.map((_,i)=>i).sort((a,b)=>workplaces[a].id-workplaces[b].id));}this.routes=[];this.volumes=new Map();this.pathfinder.resetBudget();this.carFinder.resetBudget();this.bikeFinder.resetBudget();
+  this.transit?.refresh();const previous=this.volumes,changed=new Set<number>();if(!this.ranksMatch(workplaces)){this.ranks.clear();this.rankEntries=0;this.idOrder=Uint32Array.from(workplaces.map((_,i)=>i).sort((a,b)=>workplaces[a].id-workplaces[b].id));}this.routes=[];this.volumes=new Map();this.pathfinder.resetBudget();this.carFinder.resetBudget();this.bikeFinder.resetBudget();
   const available=workplaces.map(w=>w.capacity),people=this.residentMode?homes.map(h=>h.workers??0):apportion(workers,homes.map(h=>h.capacity));this.pending=0;this.volumeBuffer.fill(0);const touched:number[]=[];
   let attempts=0,logicalSearches=0;const dynamic=this.routing.enabled;
   for(let hi=0;hi<homes.length;hi++){
@@ -74,10 +75,14 @@ export class Traffic {
     if(this.graph.size>=256&&attempts%4===0)yield;attempts++;let path:number[]|null=null;
     accessLoop:for(const start of home.access)for(const goal of w.access){if(dynamic?logicalSearches>=this.config.maxRouteSearches:this.pathfinder.searches>=this.config.maxRouteSearches||this.pathfinder.expanded>=this.config.maxPathExpansions)break accessLoop;logicalSearches++;if((this.graph.size>=256&&logicalSearches%4===0)||(dynamic&&logicalSearches%8===0))yield;const p=this.pathfinder.path(start,goal,dynamic?this.pathfinder.expanded+this.graph.size*this.graph.size+1:this.config.maxPathExpansions);if(p&&(!path||p.length<path.length))path=p;}
     if(!path)continue;
-    if(this.graph.busOnly.size){let normal:number[]|null=null;for(const start of home.access)for(const goal of w.access){const p=this.carFinder.path(start,goal,this.config.maxPathExpansions);if(p&&(!normal||p.length<normal.length))normal=p;}if(!normal&&this.carFinder.exhausted){this.pending+=remaining;break;}if(normal&&this.config.accessMinutes*2+(normal.length-1)*this.config.minutesPerRoad<=this.config.maxCommuteMinutes)path=normal;}
-
-    if(!this.transit&&path.some(id=>this.graph.busOnly.has(id)))continue;const distance=path.length-1,minutes=this.config.accessMinutes*2+distance*this.config.minutesPerRoad;
-    if(minutes>this.config.maxCommuteMinutes)continue;
+    // Eligibility is based on usable road distance, never straight-line proximity or congestion delay.
+    let normal:number[]|null=null;for(const start of home.access)for(const goal of w.access){const p=this.carFinder.path(start,goal,this.config.maxPathExpansions);if(p&&(!normal||p.length<normal.length))normal=p;}
+    const carOK=!!normal&&normal.length+1<=COMMUTE_REACH.car;
+    const walkOK=roadDistance(this.graph,home.id,w.id,'walk',COMMUTE_REACH.walk)<=COMMUTE_REACH.walk;
+    const bus=this.transit?.connection(home.id,w.id,this.config.minutesPerRoad);
+    if(!carOK&&(!walkOK||!this.transit)&&!bus){if(this.carFinder.exhausted){this.pending+=remaining;break;}continue;}
+    if(carOK)path=normal!;
+    const distance=path.length-1,minutes=this.config.accessMinutes*2+distance*this.config.minutesPerRoad;
     const count=Math.min(remaining,available[i]);remaining-=count;available[i]-=count;
     this.routes.push({home:home.id,work:w.id,kind:w.kind,count,path,distance,minutes,served:0});
     for(const id of path){if(!this.volumeBuffer[id])touched.push(id);this.volumeBuffer[id]+=count*this.tripFactor;}
@@ -87,7 +92,7 @@ export class Traffic {
   if(useTransit){
    transit!.begin(homes,workers,this.config.workforceRatio,this.residentPopulation);
    const predicted=(id:number)=>Math.min(this.config.maxCongestionMultiplier,1+this.config.congestionFactor*(this.volumeBuffer[id]/this.capacity(id))**this.config.congestionExponent);
-   for(let ri=0;ri<this.routes.length;ri++){if(ri%8===0)yield;const r=this.routes[ri];let carMinutes=this.config.accessMinutes*2;for(let i=1;i<r.path.length;i++)carMinutes+=(this.roadMinutes(r.path[i-1])*predicted(r.path[i-1])+this.roadMinutes(r.path[i])*predicted(r.path[i]))/2;const canDrive=!r.path.some(id=>this.graph.busOnly.has(id)),choice=transit!.choose(r.home,r.work,r.count,canDrive?carMinutes:Infinity,this.config.minutesPerRoad,id=>1,canDrive);if(this.residentMode&&choice.car>0){const p=this.bikeFinder.path(r.path[0],r.path.at(-1)!,this.config.maxPathExpansions);if(p&&p.length>3&&p.length<=25){choice.bike=Math.max(1,Math.floor(choice.car*.25));choice.bikeMinutes=(p.length-1)*.8;choice.bikePath=p;choice.car-=choice.bike;}}modal.push(choice);}
+   for(let ri=0;ri<this.routes.length;ri++){if(ri%8===0)yield;const r=this.routes[ri];let carMinutes=this.config.accessMinutes*2;for(let i=1;i<r.path.length;i++)carMinutes+=(this.roadMinutes(r.path[i-1])*predicted(r.path[i-1])+this.roadMinutes(r.path[i])*predicted(r.path[i]))/2;const canDrive=r.path.length+1<=COMMUTE_REACH.car&&!r.path.some(id=>!this.graph.allows(id,'car')),choice=transit!.choose(r.home,r.work,r.count,canDrive?carMinutes:Infinity,this.config.minutesPerRoad,id=>1,canDrive);if(this.residentMode&&choice.car>0){const p=this.bikeFinder.path(r.path[0],r.path.at(-1)!,this.config.maxPathExpansions);if(p&&p.length>3&&p.length<=25){choice.bike=Math.max(1,Math.floor(choice.car*.25));choice.bikeMinutes=(p.length-1)*.8;choice.bikePath=p;choice.car-=choice.bike;}}modal.push(choice);}
    this.volumeBuffer.fill(0);touched.length=0;
    const add=(id:number,n:number)=>{if(!this.volumeBuffer[id])touched.push(id);this.volumeBuffer[id]+=n;};
    for(let i=0;i<this.routes.length;i++)if(modal[i].car)for(const id of this.routes[i].path)add(id,modal[i].car*this.tripFactor);
@@ -113,12 +118,12 @@ export class Traffic {
    route.minutes=this.config.accessMinutes*2;
    // Half of each endpoint's cost is included for every road edge.
    if(!useRouting&&carCounts[ri])for(let i=1;i<route.path.length;i++)route.minutes+=(this.roadMinutes(route.path[i-1])*this.multiplierBuffer[route.path[i-1]]+this.roadMinutes(route.path[i])*this.multiplierBuffer[route.path[i]])/2;
-   let dynamicCarServed=0,dynamicCarTime=0;if(useRouting)for(const l of this.carLegs[ri]){const minutes=this.routing.time(l.path,this.volumeBuffer,id=>this.capacity(id));dynamicCarTime+=minutes*l.count;if(minutes<=this.config.maxCommuteMinutes)dynamicCarServed+=l.count;}
-   else{dynamicCarTime=route.minutes*carCounts[ri];dynamicCarServed=route.minutes<=this.config.maxCommuteMinutes?carCounts[ri]:0;}actualCarTime+=dynamicCarTime;if(useRouting&&carCounts[ri])route.minutes=dynamicCarTime/carCounts[ri];
-   route.served=this.routing.enabled?dynamicCarServed:route.minutes<=this.config.maxCommuteMinutes?route.count:0;
+   let dynamicCarServed=0,dynamicCarTime=0;if(useRouting)for(const l of this.carLegs[ri]){const minutes=this.routing.time(l.path,this.volumeBuffer,id=>this.capacity(id));dynamicCarTime+=minutes*l.count;dynamicCarServed+=l.count;}
+   else{dynamicCarTime=route.minutes*carCounts[ri];dynamicCarServed=carCounts[ri];}actualCarTime+=dynamicCarTime;if(useRouting&&carCounts[ri])route.minutes=dynamicCarTime/carCounts[ri];
+   route.served=this.routing.enabled?dynamicCarServed:carCounts[ri];
    if(useTransit){const m=modal[ri],carMinutes=route.minutes;let busMinutes=0;if(m.busChoice){busMinutes=m.busChoice.walk+transit!.config.waitMinutes+m.busChoice.stops*transit!.config.dwellMinutes;for(let i=1;i<m.busChoice.path.length;i++)busMinutes+=this.config.minutesPerRoad*(this.multiplier(m.busChoice.path[i-1])+this.multiplier(m.busChoice.path[i]))/2;}
-    const walk=m.walkMinutes<=this.config.maxCommuteMinutes?m.walk:0,bus=busMinutes<=this.config.maxCommuteMinutes?m.bus:0,car=this.routing.enabled?dynamicCarServed:carMinutes<=this.config.maxCommuteMinutes?m.car:0;
-    carServed[ri]=car;route.served=walk+bus+car+(m.bike??0);transit!.cyclists+=m.bike??0;route.minutes=route.count?(m.walk*m.walkMinutes+m.bus*busMinutes+m.car*carMinutes+(m.bike??0)*(m.bikeMinutes??0))/route.count:0;transit!.record(m,walk,bus,car,busMinutes);route.movement={walk,bus,car,bike:m.bike,bikePath:m.bikePath,busPath:m.busChoice?.path,route:m.busChoice?.route};
+    const walk=m.walk,bus=m.bus,car=this.routing.enabled?dynamicCarServed:m.car;
+    carServed[ri]=car;route.served=walk+bus+car+(m.bike??0);transit!.cyclists+=m.bike??0;route.minutes=route.count?((m.walk?m.walk*m.walkMinutes:0)+(m.bus?m.bus*busMinutes:0)+(m.car?m.car*carMinutes:0)+(m.bike??0)*(m.bikeMinutes??0))/route.count:0;transit!.record(m,walk,bus,car,busMinutes);route.movement={walk,bus,car,bike:m.bike,bikePath:m.bikePath,busPath:m.busChoice?.path,route:m.busChoice?.route};
    }else{route.movement={walk:0,bus:0,car:route.served};if(transit)transit.carUsers+=route.served;}
    this.employed+=route.served;if(route.kind==='commercial')this.commercialEmployed+=route.served;else this.industrialEmployed+=route.served;
    commuters+=route.count;time+=route.minutes*route.count;distance+=route.distance*route.count;if(useRouting)distance+=this.carLegs[ri].reduce((n,l)=>n+l.count*(l.path.length-1),0)-carCounts[ri]*route.distance;

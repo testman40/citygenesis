@@ -1,0 +1,63 @@
+import {DemandMeter} from '../ui/DemandMeter';
+import {urbanDemand,demandAdvice} from '../demand/Demand';
+import type {City} from '../simulation/City';
+import {chartModels,CHART_COLORS,type ChartModel,type ChartSeries} from './ChartData';
+import {gameDate} from '../ui/HudPresentation';
+import './charts.css';
+const node=<K extends keyof HTMLElementTagNameMap>(tag:K,text?:string)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
+// Money uses the ledger's cent precision; other indices retain up to six decimals.
+const exact=(v:number|null,unit='')=>v===null?'未記録':v.toLocaleString('ja-JP',{maximumFractionDigits:unit==='資金'?2:6});
+const headline=(v:number|null)=>v===null?'未集計':v.toLocaleString('ja-JP',{maximumFractionDigits:1});
+const tick=(v:number)=>new Intl.NumberFormat('ja-JP',{notation:'compact',maximumFractionDigits:1}).format(v);
+const svgNS='http://www.w3.org/2000/svg';
+const svgNode=(tag:string,attrs:Record<string,string|number>,text?:string)=>{const e=document.createElementNS(svgNS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));if(text!==undefined)e.textContent=text;return e;};
+/** DOM/SVG presentation only: history is recorded by the simulation at monthly commit. */
+export class CityCharts {
+ private demandMeter=new DemandMeter(true);private demandCard=node('section');private demandHistory=node('div');private demandAdvice=node('p');private demandCity:City|undefined;private hintSeen=false;private hintCandidate:HTMLElement|undefined;private hintObserver=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting))this.markHintSeen();});
+ private refreshing=false;
+ private roots=new Map<string,HTMLElement>();private signatures=new Map<string,string>();private selection=new Map<string,string>();private city:City|undefined;
+ constructor(){
+  try{this.hintSeen=localStorage.getItem('citygenesis-chart-hint')==='seen';}catch{}
+  this.demandCard.className='city-chart';this.demandCard.append(node('h3','住宅・商業・工業の需要'),this.demandMeter.root);this.demandAdvice.className='city-chart demand-advice';
+  for(const [key,id] of [['info','city-info-charts'],['manage','city-manage-charts'],['goals','city-growth-charts']]){const root=node('section');root.id=id;root.className='city-charts';root.setAttribute('aria-label','都市統計グラフ');this.roots.set(key,root);if(key==='info')document.getElementById('info-core')!.before(root);else document.getElementById('workspace-'+key)!.prepend(root);new ResizeObserver(()=>{if(this.city)this.refresh(this.city);}).observe(root);}
+  const detail=node('details');detail.id='chart-map-details';detail.append(node('summary','地図ビュー・現在地の詳細'));const core=document.getElementById('info-core')!;core.before(detail);detail.append(core);
+ }
+ private markHintSeen(){this.hintSeen=true;this.hintObserver.disconnect();try{localStorage.setItem('citygenesis-chart-hint','seen');}catch{}}
+ refreshDemand(c:City){this.demandMeter.update(urbanDemand(c),this.demandCity!==c);this.demandCity=c;const advice=demandAdvice(c);if(this.demandAdvice.textContent!==advice)this.demandAdvice.textContent=advice;if(!this.refreshing&&document.body.dataset.workspace==='info'&&document.getElementById('information-panel')?.dataset.section==='demand')this.refresh(c);}
+ refresh(c:City){if(this.refreshing)return;this.refreshing=true;try{this.paint(c);}finally{this.refreshing=false;}}
+ private paint(c:City){
+  this.refreshDemand(c);
+  this.city=c;const category=document.body.dataset.workspace??'';for(const [key,root] of this.roots)root.hidden=key!==category;
+  const root=this.roots.get(category);if(!root)return;const section=category==='info'?document.getElementById('information-panel')!.dataset.section??'requests':category;
+  const width=Math.floor(root.clientWidth);if(width<=0)return;const firstColumn=parseFloat(getComputedStyle(root).gridTemplateColumns.split(' ')[0]),chartWidth=Math.floor(Number.isFinite(firstColumn)?firstColumn:width);const models=chartModels(c,section),signature=JSON.stringify([section,width,chartWidth,models]);if(this.signatures.get(category)===signature)return;this.signatures.set(category,signature);
+  if(!this.hintSeen){this.hintObserver.disconnect();this.hintCandidate=undefined;}
+  const focused=root.contains(document.activeElement)?(document.activeElement as HTMLElement).closest<HTMLElement>('[data-chart-key]')?.dataset.chartKey:undefined;
+  if(section==='demand'){if(!root.contains(this.demandCard))root.replaceChildren(this.demandCard,this.demandHistory,this.demandAdvice);this.demandHistory.replaceChildren(...models.map(model=>this.figure(model,chartWidth)));}else root.replaceChildren(...models.map(model=>this.figure(model,chartWidth)));if(section==='workAccess'){const guide=node('section');guide.className='city-chart';guide.append(node('h3','仕事への近さ'),node('p','緑：職場へ通いやすい　青：遠い　赤：遠い・接続がない'),node('p','徒歩は道路で10マス、車は30マスまで。運行中のバスは自宅と職場から停留所まで徒歩5マス以内なら距離制限なし。'),node('p','道路の進行方向・通行できる種類を反映。色は職場への到達しやすさで、空き求人の保証ではありません。満員の状況と建設候補は「市民要望」で確認できます。'));root.append(guide);}if(focused)root.querySelector<HTMLElement>(`[data-chart-key="${focused}"] [tabindex], [data-chart-key="${focused}"] button`)?.focus({preventScroll:true});
+ }
+ private figure(m:ChartModel,width:number){
+  const figure=node('figure');figure.className='city-chart';figure.dataset.chartKey=m.id;figure.setAttribute('aria-label',m.title);const caption=node('figcaption');caption.append(node('h3',m.title));const metric=node('div');metric.className='chart-metric';const strong=node('strong',headline(m.current));strong.className=m.current===null?'':m.bad?'chart-bad':'chart-good';metric.append(node('span',m.currentLabel),strong,node('span',m.unit));if(!m.hideCurrent)caption.append(metric);figure.append(caption);
+  const hint=!this.hintSeen&&!this.hintCandidate&&(m.kind==='bar'?(m.bars??[]).some(p=>p.value!==null):(m.series??[]).some(s=>s.points.some(p=>p.value!==null)));const readout=node('output',hint?'指で触れる／マウスを重ねると正確な値':'');readout.hidden=!hint;if(hint){this.hintCandidate=readout;this.hintObserver.observe(readout);}readout.className='chart-readout';readout.setAttribute('aria-live','polite');const show=(key:string,text:string)=>{if(!this.hintSeen)this.markHintSeen();if(this.hintCandidate&&this.hintCandidate!==readout){this.hintCandidate.hidden=true;this.hintCandidate.textContent='';}this.selection.set(m.id,key);readout.hidden=false;readout.textContent=text;};
+  if(m.kind==='bar')this.bars(figure,m,show);else this.lines(figure,m,width,show);
+  figure.append(readout);if(m.note)figure.append(Object.assign(node('p',m.note),{className:'chart-note'}));return figure;
+ }
+ private bars(root:HTMLElement,m:ChartModel,show:(key:string,text:string)=>void){
+  const values=m.bars??[],known=values.filter(p=>p.value!==null);if(!known.length){root.append(Object.assign(node('p',values.length?'この項目はまだ集計されていません。':'比較する項目がまだありません。'),{className:'chart-empty'}));return;}
+  const max=Math.max(1,...known.map(p=>Math.abs(p.value!))),negative=known.some(p=>p.value!<0),list=node('div');list.className='chart-bars';
+  for(const p of values){const row=node('button');row.type='button';row.className='chart-bar';const label=node('span',p.label);label.className='chart-bar-label';const track=node('span');track.className='chart-bar-track';if(negative)track.classList.add('chart-signed');const fill=node('span');fill.className='chart-bar-fill';const value=p.value??0,span=Math.abs(value)/max*(negative?50:100);fill.style.width=span+'%';fill.style.background=p.bad||value<0?CHART_COLORS.bad:p.color;if(negative)fill.style.left=(value<0?50-span:50)+'%';track.append(fill);const n=node('span',exact(p.value,m.unit));n.className='chart-bar-number'+(p.bad||value<0?' chart-bad':'');row.append(label,track,n);const text=p.label+'：'+exact(p.value,m.unit)+' '+m.unit;row.setAttribute('aria-label',text);row.title=text;row.dataset.chartValue=String(p.value);const pick=()=>show(p.label,text);row.addEventListener('pointerenter',pick);row.addEventListener('focus',pick);row.addEventListener('click',pick);list.append(row);if(p.actions?.length){const actions=node('div');actions.className='chart-request-actions';for(const action of p.actions){const button=node('button',action.label);button.type='button';if(action.kind){button.dataset.workAction=action.kind;button.dataset.workRegion=action.region;}else button.dataset.infoMode=action.mode;actions.append(button);}list.append(actions);}if(this.selection.get(m.id)===p.label)pick();}
+  root.append(list);
+ }
+ private lines(root:HTMLElement,m:ChartModel,width:number,show:(key:string,text:string)=>void){
+  const series=m.series??[],months=[...new Set(series.flatMap(s=>s.points.map(p=>p.month)))].sort((a,b)=>a-b),known=series.flatMap(s=>s.points.flatMap(p=>p.value===null?[]:[p.value]));
+  if(!known.length){root.append(Object.assign(node('p','月次の記録がまだありません。次の月次決算から表示します。'),{className:'chart-empty'}));return;}
+  const w=Math.max(180,width-26),h=166,left=45,right=w-8,top=m.liveMonth!==undefined?20:14,bottom=h-25,min=m.axis?.min??Math.min(0,...known),max=m.axis?.max??Math.max(1,...known),range=max-min||1,first=months[0],last=months.at(-1)!,x=(month:number)=>months.length===1?(m.liveMonth!==undefined?right:(left+right)/2):left+(month-first)/Math.max(1,last-first)*(right-left),y=(value:number)=>bottom-(value-min)/range*(bottom-top);
+  const svg=svgNode('svg',{viewBox:`0 0 ${w} ${h}`,width:w,height:h,role:'img',tabindex:0,'aria-label':m.title+'。左右矢印キーで月の値を確認できます。'});svg.classList.add('chart-line');svg.append(svgNode('title',{},m.title));
+  for(const value of m.axis?.ticks??[min,min+range/2,max]){const py=y(value),zero=!!m.axis&&value===0;svg.append(svgNode('line',{x1:left,y1:py,x2:right,y2:py,stroke:zero?'#64767d':'#dce4e7','stroke-width':zero?1.6:1,'data-axis-value':value}),svgNode('text',{x:left-5,y:py+4,'text-anchor':'end',fill:'#43555d','font-size':12},tick(value)));}
+  const bad=(s:ChartSeries,value:number)=>(s.badAbove!==undefined&&value>s.badAbove)||(m.id==='funds'&&value<0)||(m.id==='happiness'&&value<60);
+  for(const s of series){let prior:typeof s.points[number]|undefined;for(const p of s.points){if(p.value===null){prior=undefined;continue;}if(prior?.value!==null&&prior&&p.month===prior.month+1)svg.append(svgNode('line',{x1:x(prior.month),y1:y(prior.value!),x2:x(p.month),y2:y(p.value),stroke:bad(s,p.value)||bad(s,prior.value!)?CHART_COLORS.bad:s.color,'stroke-width':2.5}));const dot=svgNode('circle',{cx:x(p.month),cy:y(p.value),r:p.live?5.5:3.5,'data-live':String(!!p.live),'data-chart-value':p.value,fill:bad(s,p.value)?CHART_COLORS.bad:s.color,'data-chart-month':p.month});dot.append(svgNode('title',{},(p.live?'今（'+gameDate(p.month)+'）':gameDate(p.month))+' '+s.label+'：'+exact(p.value,m.unit)+' '+m.unit));svg.append(dot);prior=p;}}
+  svg.append(svgNode('text',{x:first===m.liveMonth?right:left,y:h-5,'text-anchor':first===m.liveMonth?'end':'start',fill:'#43555d','font-size':12},first===m.liveMonth?'今':gameDate(first)));if(last!==first)svg.append(svgNode('text',{x:right,y:h-5,'text-anchor':'end',fill:'#43555d','font-size':12},last===m.liveMonth?'今':gameDate(last)));
+  const cursor=svgNode('line',{x1:0,y1:top,x2:0,y2:bottom,stroke:'#344d57','stroke-dasharray':'3 3',visibility:'hidden'});svg.append(cursor);let selected=Math.max(0,months.indexOf(Number(this.selection.get(m.id))));
+  const pick=(index:number)=>{selected=Math.max(0,Math.min(months.length-1,index));const month=months[selected];cursor.setAttribute('x1',String(x(month)));cursor.setAttribute('x2',String(x(month)));cursor.setAttribute('visibility','visible');show(String(month),gameDate(month)+(month===m.liveMonth?'（今）':'')+'｜'+series.map(s=>s.label+' '+exact(s.points.find(p=>p.month===month)?.value??null,m.unit)+' '+m.unit).join(' / '));};
+  const pointer=(event:PointerEvent)=>{const rect=svg.getBoundingClientRect(),point=(event.clientX-rect.left)/rect.width*w;let nearest=0;for(let i=1;i<months.length;i++)if(Math.abs(x(months[i])-point)<Math.abs(x(months[nearest])-point))nearest=i;pick(nearest);};svg.addEventListener('pointermove',pointer as EventListener);svg.addEventListener('pointerdown',pointer as EventListener);svg.addEventListener('focus',()=>pick(selected));svg.addEventListener('keydown',((e:KeyboardEvent)=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();e.stopPropagation();pick(e.key==='Home'?0:e.key==='End'?months.length-1:selected+(e.key==='ArrowRight'?1:-1));}}) as EventListener);
+  root.append(svg);const legend=node('div');legend.className='chart-legend';for(const s of series){const item=node('span',s.label);item.style.borderLeftColor=s.color;legend.append(item);}root.append(legend);if(this.selection.has(m.id))pick(selected);
+ }
+}

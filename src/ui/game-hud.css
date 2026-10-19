@@ -149,7 +149,7 @@ body.hud-layout #app #info-detail-view{max-width:100%;min-width:0;flex:1}
  body.hud-layout #app .hud-sheet-grip{display:flex;position:sticky;top:0;z-index:5;align-items:center;justify-content:center;flex-direction:column;gap:2px;height:32px;min-height:32px;background:white;cursor:ns-resize;touch-action:none;user-select:none}
  body.hud-layout #app .hud-sheet-grip>span{width:40px;height:4px;border-radius:4px;background:#89999f}
  body.hud-layout #app .hud-sheet-grip small{font-size:10px;line-height:14px}
- body.hud-layout #app .hud-sheet-grip:focus-visible{outline:2px solid #185fa5;outline-offset:-2px}
+ body.hud-layout #app .hud-sheet-grip:focus-visible{outline:none}
  body.hud-layout #app :is(.workspace-heading,.hud-context-heading){position:sticky;top:32px;background:white;z-index:4;padding:6px 0}
  body.hud-layout #app #hud-info-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:5px;touch-action:pan-x;overscroll-behavior-x:contain;scrollbar-width:thin}
  body.hud-layout #app #hud-info-tabs button{flex:0 0 auto;white-space:nowrap;padding:6px 9px}

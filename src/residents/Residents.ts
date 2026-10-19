@@ -1,3 +1,4 @@
+import {fictionalName,householdName} from './Names';
 import {roadLanes} from '../traffic/RoadLanes';
 import {sidewalkPath,footPose,FootWalker,type FootPoint} from '../people/Sidewalks';
 import type {City} from '../simulation/City';
@@ -6,18 +7,16 @@ import {Pathfinder} from '../traffic/Pathfinder';
 import {buildLaneJourney,laneVehicle,type LaneLoop} from '../traffic/LanePath';
 export type Household=[id:number,home:number,size:number,kind:number];
 export interface Arrival {household:Household;path:number[];progress:number;blocked:boolean}
-export interface ResidentState {version:1;nextId:number;time:number;households:Household[];arrivals:Arrival[]}
+export interface ResidentState {version:1;nameSeed?:number;nextId:number;time:number;households:Household[];arrivals:Arrival[]}
 export interface Person {id:string;household:number;home:number;name:string;group:'子供'|'大人'|'高齢者';index:number;moving:boolean}
 export interface Activity {crossing?:number;label:string;mode:string;x:number;z:number;path:number[];progress:number;moving:boolean;work?:number;vehicle?:VehiclePose}
 export type Place={id:number;kind:'school'|'shop'|'park'};
 const groups=(h:Household):Person['group'][]=>Array.from({length:h[2]},(_,i)=>h[3]===3?'高齢者':h[3]===0?(['大人','大人','子供','高齢者'] as const)[i]:h[3]===1?(i<2?'大人':'子供'):'大人');
-const surname=['佐藤','鈴木','高橋','田中','伊藤','渡辺','山本','中村','小林','加藤','吉田','山田'];
-const first=['葵','悠','陽','凛','健','楓','遥','光','陸','奏','誠','咲'];
 export class Residents {
  readonly state:ResidentState;tracked:string|undefined;
  private counts=new Map<number,number>();private adults=new Map<number,number>();private families=new Map<number,Household>();private offsets=new Map<number,number>();private gatewayRevision=-1;private gatewayCache:number[]=[];
  private walkers=new Map<string,FootWalker>();private footPaths=new Map<string,FootPoint[]>();private finder:Pathfinder|undefined;private paths=new Map<string,number[]>();private lanes=new Map<string,LaneLoop>();private pathRevision=-1;private jobsRevision=-1;private jobs=new Map<number,Commute[]>();private places:Place[]=[];private homeFamilies=new Map<number,Household[]>();readonly ageCounts={'子供':0,'大人':0,'高齢者':0};private populationValue=0;private adultValue=0;private retry=0;
- constructor(state?:ResidentState){this.state=state?structuredClone(state):{version:1,nextId:1,time:6,households:[],arrivals:[]};this.reindex();}
+ constructor(state?:ResidentState){this.state=state?structuredClone(state):{version:1,nameSeed:Math.floor(Math.random()*0x100000000),nextId:1,time:6,households:[],arrivals:[]};this.reindex();}
  snapshot():ResidentState{return structuredClone(this.state);}
  get population(){return this.populationValue;}
  get workforce(){return this.adultValue;}
@@ -59,7 +58,8 @@ export class Residents {
   }
   if(changed){const arrived=new Set(this.state.households.map(h=>h[0]));this.state.arrivals=this.state.arrivals.filter(a=>!arrived.has(a.household[0]));this.reindex();}return changed;
  }
- members(h:Household,moving=false):Person[]{return groups(h).map((group,index)=>({id:h[0]+':'+index,household:h[0],home:h[1],name:surname[h[0]%surname.length]+' '+first[(h[0]*3+index)%first.length],group,index,moving}));}
+ householdName(h:Household){return householdName(h[0],this.state.nameSeed??0);}
+ members(h:Household,moving=false):Person[]{return groups(h).map((group,index)=>({id:h[0]+':'+index,household:h[0],home:h[1],name:fictionalName(h[0],this.state.nameSeed??0,index),group,index,moving}));}
  person(id:string){const match=/^(\d+):([0-3])$/.exec(id);if(!match)return;const family=Number(match[1]),index=Number(match[2]),h=this.families.get(family)??this.state.arrivals.find(a=>a.household[0]===family)?.household;return h?this.members(h,!this.families.has(family))[index]:undefined;}
  job(city:City,person:Person){if(person.group!=='大人'||person.moving)return;if(this.jobsRevision!==city.traffic.solveRevision){this.jobs.clear();for(const r of city.traffic.routes){const list=this.jobs.get(r.home)??[];list.push(r);this.jobs.set(r.home,list);}this.jobsRevision=city.traffic.solveRevision;}
   const h=this.families.get(person.household)!;let ordinal=(this.offsets.get(h[0])??0)+groups(h).slice(0,person.index).filter(g=>g==='大人').length;

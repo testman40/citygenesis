@@ -133,6 +133,7 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
    }
   }else{
    if(overlay==='medical'||overlay==='education'){const cover=Math.max(0,...city.network.adjacent(owner).map(r=>overlay==='medical'?city.wellness.roadCoverage(r,'medical'):city.wellness.roadCoverage(r,'elementary')*.6+city.wellness.roadCoverage(r,'highSchool')*.4));if(cover>0)add('surface',px,.026,pz,.96,.04,.96,INFO_STYLE[informationAt(city,owner,overlay).state].color);}
+   if(overlay==='workAccess'&&city.network.access(owner).length)add('surface',px,.028,pz,.96,.045,.96,INFO_STYLE[informationAt(city,owner,overlay).state].color);
    if(overlay==='transit'&&city.transit.covered(owner))add('surface',px,.026,pz,.96,.04,.96,INFO_STYLE.green.color);
    const nearRoad=access.some(Boolean);
    if((nearRoad&&seed%5===0)||(!nearRoad&&seed%113===0)){add('surface',px,.017,pz,.9,.025,.9,seed%2?'#b4c5a3':'#a7c4a2');tree(px,pz,seed);if(nearRoad){add('surface',px,.04,pz,.15,.022,.87,'#d9d7be');add('surface',px,.041,pz,.87,.022,.13,'#d9d7be');if(quality==='high'){add('detail',px+.25,.16,pz+.27,.31,.055,.12,'#bfa77f');add('detail',px+.25,.23,pz+.31,.31,.12,.03,'#bfa77f');}}}

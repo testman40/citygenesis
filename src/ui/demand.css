@@ -1,0 +1,27 @@
+body.hud-layout #app #hud-demand{display:flex;align-items:center;justify-content:center;width:66px;min-width:66px;height:42px;min-height:42px;padding:1px 3px;border:1px solid #c9d5d9;background:#fff;border-radius:6px;flex-shrink:0;margin:0}
+.demand-meter{display:flex;justify-content:center;gap:6px;--meter-height:26px;--meter-width:12px}
+.demand-column{display:flex;position:relative;flex-direction:column;align-items:center;width:var(--meter-width);color:#3B6D11}
+body.hud-layout #app .demand-meter .demand-column{display:flex}
+.demand-column[data-demand-zone=commercial]{color:#185FA5}.demand-column[data-demand-zone=industrial]{color:#D85A30}
+.demand-track{position:relative;display:block;height:var(--meter-height);width:var(--meter-width);background:#f2f5f6}
+.demand-track:after{content:'';position:absolute;left:-3px;right:-3px;top:50%;border-top:1px solid #64767d}
+.demand-track i{margin:0;padding:0;position:absolute;left:1px;right:1px;height:50%;background:currentColor;transform:scaleY(0)}
+.demand-up{top:0;transform-origin:bottom}.demand-down{top:50%;transform-origin:top}
+.demand-label{font-size:12px!important;line-height:14px;font-weight:700;white-space:nowrap}.demand-trend{position:absolute;right:-7px;top:0;font-size:9px;line-height:11px}
+.demand-meter-large{--meter-height:120px;--meter-width:40px;gap:30px;padding:10px 8px 0}.demand-meter-large .demand-label{font-size:16px!important;line-height:26px}.demand-meter-large .demand-trend{right:-16px;font-size:12px}
+.work-region{margin:8px 0;border-top:1px solid #dce4e7;padding-top:5px}.chart-note{white-space:pre-line}
+body.hud-layout #app .chart-request-actions{display:flex;flex-wrap:wrap;gap:5px;margin:1px 0 12px}body.hud-layout #app .chart-request-actions button{font-size:12px;min-height:40px;padding:6px 8px;white-space:normal;text-align:left;background:#edf3f5;border:1px solid #c8d5d9;border-radius:7px}
+body.hud-layout #app .chart-readout[hidden]{display:none}
+body.hud-layout #app .hud-sheet-grip:focus,body.hud-layout #app .hud-sheet-grip:focus-visible{outline:none;box-shadow:none}body.hud-layout #app .hud-sheet-grip:focus-visible>span{background:#43555d;box-shadow:0 0 0 2px #dce4e7}
+body.hud-layout #app button[aria-disabled=true]{opacity:.5;cursor:help}
+@media(max-width:700px){body.hud-layout #app #hud-topbar .stats{gap:3px!important}body.hud-layout #app #hud-demand{width:62px;min-width:62px;gap:5px;height:32px;min-height:32px;--meter-height:18px;--meter-width:12px}body.hud-layout #app #hud-topbar .stats>span{gap:2px;font-size:11px!important}body.hud-layout #app #hud-topbar .stats b{font-size:12px}}
+@media(prefers-reduced-motion:no-preference){body.hud-layout #app .demand-track i{transition:transform .5s ease-out!important}}
+/* Only the requested desktop tab grid, request cards and saturation labels. */
+@media(min-width:701px){body.hud-layout #app #hud-info-hub #hud-info-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}body.hud-layout #app #hud-info-hub #hud-info-tabs button{min-width:0;justify-content:center}}
+body.hud-layout #app .request-card{border:1px solid #d5dddf;border-left:4px solid #c28b39;border-radius:9px;padding:12px;margin:12px 0;background:#fff;color:#17252b}
+body.hud-layout #app .request-card h3{margin:0;font-size:14px;line-height:1.6;color:#17252b}body.hud-layout #app .request-card p{font-size:12px;margin:8px 0;color:#43555d}
+body.hud-layout #app .request-card button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;width:100%;padding:8px;background:#e7f0ed;border:1px solid #a8c1b9;border-radius:7px;color:#17252b;font-size:12px;white-space:normal}
+body.hud-layout #app .request-card button:hover{background:#d8e8e2}
+body.hud-layout #app #hud-demand{position:relative}
+body.hud-layout #app #hud-demand .demand-meter-limit{position:absolute;top:-13px;left:0;right:0;white-space:nowrap;font-size:11px;line-height:13px;color:#7a3b16;background:white;border-radius:3px}
+.demand-meter-large{padding-top:22px}.demand-limit{position:absolute;top:-20px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12px;color:#7a3b16}

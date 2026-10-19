@@ -1,10 +1,11 @@
-import type {City} from '../simulation/City';import {INFO_MODES,citizenRequests,type InfoMode} from './CityInformation';
+import {urbanDemand} from '../demand/Demand';
+import type {City} from '../simulation/City';import {INFO_MODES,citizenRequests,requestTotal,type InfoMode} from './CityInformation';
 const icon=(path:string)=>'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+path+'"/></svg>';
 export const INFO_GROUPS=[
  {id:'living',label:'暮らし',tabs:['residents','happiness','requests']},
  {id:'infrastructure',label:'インフラ',tabs:['demand','power','water','sewage','network','medical','education','fire','police']},
  {id:'environment',label:'環境',tabs:['environment','air','noise']},
- {id:'traffic',label:'交通',tabs:['traffic','transit']},
+ {id:'traffic',label:'交通',tabs:['traffic','transit','workAccess']},
 ] as const;
 export function informationGroup(tab:string|null){return INFO_GROUPS.find(g=>(g.tabs as readonly string[]).includes(tab??''))?.id??'living';}
 export const INFO_TABS=[
@@ -18,7 +19,8 @@ export const INFO_TABS=[
  {id:'traffic',label:'交通',icon:icon('M7 3 3 21m14-18 4 18M12 3v4m0 4v3m0 4v3')},
  {id:'transit',label:'バス・公共交通',icon:icon('M5 17V5c0-3 14-3 14 0v12H5Zm0-7h14M8 17v4m8-4v4M8 13h1m6 0h1')},
  {id:'power',label:'電力',icon:icon('m14 2-9 12h7l-2 8 9-12h-7l2-8Z')},
- {id:'demand',label:'都市需要',icon:icon('M3 21h18M5 17v-5h3v5m3 0V7h3v10m3 0V3h3v14')},
+ {id:'workAccess',label:'仕事への近さ',icon:icon('M3 21h18M7 21V7h10v14M10 7V3h4v4M10 11h4m-4 4h4')},
+ {id:'demand',label:'需要',icon:icon('M3 21h18M5 17v-5h3v5m3 0V7h3v10m3 0V3h3v14')},
  {id:'network',label:'道路接続',icon:icon('M3 12h18M12 3v18')},
  {id:'medical',label:'医療',icon:icon('M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z')},
  {id:'education',label:'教育',icon:icon('m2 8 10-5 10 5-10 5L2 8Zm4 3v7h12v-7')},
@@ -31,20 +33,20 @@ export interface MenuState {tab:InfoTab|'other'|null;mode:InfoMode}
 export const closedMenu=():MenuState=>({tab:null,mode:'normal'});
 export function modeMenu(mode:InfoMode):MenuState {if(mode==='normal')return closedMenu();return {tab:INFO_TABS.some(t=>t.id===mode)?mode as InfoTab:'other',mode};}
 export function toggleMenu(state:MenuState,tab:InfoTab):MenuState {return state.tab===tab?closedMenu():{tab,mode:tab==='requests'||tab==='residents'?'normal':tab};}
-const DIRECT_TABS=['residents','happiness','requests'];
+const DIRECT_TABS=['residents','happiness','requests','demand','workAccess'];
 export const INFO_BAR_HTML='<section id="information-toolbar" aria-label="都市情報ビュー"><div class="information-shortcuts" role="toolbar" aria-label="情報の分類">'+INFO_GROUPS.map(g=>'<button type="button" data-info-group="'+g.id+'" aria-controls="information-panel" aria-pressed="false">'+g.label+'</button>').join('')+INFO_TABS.filter(t=>DIRECT_TABS.includes(t.id)).map(t=>'<button type="button" data-info-tab="'+t.id+'" aria-controls="information-panel" aria-pressed="false" aria-expanded="false">'+t.label+(t.id==='requests'?'<span id="info-request-badge" class="info-count">0</span>':'')+'</button>').join('')+'</div><label id="info-detail-label" hidden>詳細表示 <select id="info-detail-view" aria-label="分類内の詳細表示"></select></label><select id="info-other" hidden aria-label="情報を直接選択"><option value="">選択</option>'+Object.entries(INFO_MODES).filter(([k])=>k!=='normal').map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select></section>';
 const num=(v:number)=>v.toLocaleString('ja-JP',{maximumFractionDigits:1}),pct=(v:number)=>Math.round(v*100)+'%';
 /** Presentation of existing results only. No policy, save or simulation mutations. */
 export function compactInformation(c:City,mode:InfoMode,requestsView=false){
  const requests=citizenRequests(c),relevant=requestsView?requests[0]:requests.find(r=>r.mode===mode),history=c.management?.lifecycle?.history??[],last=history.at(-1),prior=history.at(-2);let primary='',secondary='';
- if(requestsView){primary=requests.length+'件の要望';secondary='深刻な問題から表示。関連ビューで区域を確認';}
+ if(requestsView){primary=requestTotal(requests)+'件の要望';secondary='深刻な問題から表示。関連ビューで区域を確認';}
  else if(mode==='water'){primary='給水 '+pct(c.waterUtility?.waterRatio??c.waterRatio);secondary='需要 '+num(c.waterDemand)+' / 能力 '+num(c.waterSupply)+(c.waterUtility?' · 外部購入費 '+num(c.waterUtility.purchaseCost)+'/月':' · '+(c.hydrology?'河川・管網方式':'従来の外部給水'));}
  else if(mode==='sewage'){const w=c.waterUtility,h=c.hydrology;primary=w?'処理率 '+pct(w.treatmentRatio):h?(c.sanitation?'処理率 '+pct(h.treatmentRatio):'排水 '+pct(h.sewerRatio)):'下水計算なし';secondary=w?'未処理 '+num(w.unprocessed)+' · 発生 '+num(w.generated)+' / 能力 '+num(w.treatmentCapacity)+' · 衛生 '+num(w.hygiene):h?'放流 '+num(h.discharged)+' · 処理 '+num(h.processed)+' · 残留 '+num(h.untreated):'従来方式の都市です';}
  else if(mode==='happiness'){primary=c.satisfaction+'/100';secondary='都市全体の幸福度 · 区域別の独立した数値は未実装';}
  else if(mode==='traffic'){primary='平均通勤 '+num(c.traffic.averageMinutes)+'分';secondary='渋滞 '+pct(c.traffic.congestionRate)+' · 通勤不可 '+c.traffic.unassigned+'人';}
  else if(mode==='transit'){primary='バス利用 '+pct(c.transit.usage);secondary='利用 '+c.transit.riders+'人 · 運行状況は公共交通パネル';}
  else if(mode==='power'){primary='電力 '+pct(c.powerRatio);secondary='供給 '+num(c.powerSupply)+' / 需要 '+num(c.powerDemand);}
- else if(mode==='demand'){primary='住宅 '+c.demand.residential+' · 商業 '+c.demand.commercial+' · 工業 '+c.demand.industrial;secondary='開発需要。高需要は緑、低需要は赤（緊急度とは別）';}
+ else if(mode==='demand'){const d=urbanDemand(c);primary='住宅 '+d.residential+' · 商業 '+d.commercial+' · 工業 '+d.industrial;secondary='開発需要。高需要は緑、低需要は赤（緊急度とは別）';}
  const good=[c.powerRatio>=.8?'電力充足':'',c.waterRatio>=.8?'給水充足':'',c.taxRate<=1?'基準以下の税率':''].filter(Boolean);
  return {title:requestsView?'市民要望':INFO_MODES[mode],primary,secondary,problem:relevant?.title??'優先的な不足なし',advice:relevant?.action??'詳細で接続・能力・現在条件を確認できます',factors:'良好な現在条件：'+(good.join('・')||'詳細を確認')+' / 不足：'+(requests.slice(0,3).map(r=>r.title).join('・')||'優先的な不足なし'),trend:last&&prior?'保存履歴の前月比 '+(last.satisfaction-prior.satisfaction>0?'+':'')+(last.satisfaction-prior.satisfaction):'幸福度の変化：保存履歴が不足（推測しません）'};
 }
@@ -64,7 +66,7 @@ export class InformationMenu {
  openMode(mode:InfoMode){this.selectedGroup=DIRECT_TABS.includes(mode)?null:informationGroup(mode);this.commit(modeMenu(mode));}
  synchronize(mode:InfoMode){if(mode!==this.state.mode){this.selectedGroup=DIRECT_TABS.includes(mode)?null:informationGroup(mode);this.state=modeMenu(mode);this.paint();}}
  close(focus=false){const previous=this.state.tab;this.commit(closedMenu());if(focus&&previous){const b=previous==='other'?document.getElementById('info-other'):document.querySelector<HTMLElement>('[data-info-tab="'+previous+'"]');(b??document.querySelector<HTMLElement>('[data-info-group="'+informationGroup(previous)+'"]'))?.focus();}}
- private paint(){const panel=document.getElementById('information-panel')!,isOpen=this.state.tab!==null,requests=this.state.tab==='requests',residents=this.state.tab==='residents';document.getElementById('resident-panel')!.hidden=!residents;panel.hidden=!isOpen;panel.dataset.view=this.state.tab??'closed';document.body.classList.toggle('info-open',isOpen);if(isOpen)(document.getElementById('management-panel') as HTMLDetailsElement).open=false;
+ private paint(){const panel=document.getElementById('information-panel')!,isOpen=this.state.tab!==null,requests=this.state.tab==='requests',residents=this.state.tab==='residents'&&this.selectedGroup!=='living';document.getElementById('resident-panel')!.hidden=!residents;panel.hidden=!isOpen;panel.dataset.view=this.state.tab??'closed';panel.dataset.section=this.selectedGroup??this.state.tab??'closed';document.body.classList.toggle('info-open',isOpen);if(isOpen)(document.getElementById('management-panel') as HTMLDetailsElement).open=false;
   document.querySelectorAll<HTMLButtonElement>('[data-info-group]').forEach(b=>b.setAttribute('aria-pressed',String(isOpen&&b.dataset.infoGroup===this.selectedGroup)));
   document.querySelectorAll<HTMLButtonElement>('[data-info-tab]').forEach(b=>{const active=isOpen&&this.selectedGroup===null&&b.dataset.infoTab===this.state.tab;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-expanded',String(active));b.tabIndex=0;});
   const detail=document.getElementById('info-detail-view') as HTMLSelectElement,group=INFO_GROUPS.find(g=>g.id===this.selectedGroup),showDetail=isOpen&&!!group&&group.id!=='living';document.getElementById('info-detail-label')!.hidden=!showDetail;

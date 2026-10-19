@@ -1,3 +1,4 @@
+import {unavailable} from './LockedTools';
 import {ROAD_KINDS,type RoadKind} from '../roads/profiles';
 import {toolIcon} from '../Presentation';
 import type {City,Tool} from '../simulation/City';
@@ -23,7 +24,7 @@ export class TransportRoadTools {
  }
  private paintCategory(){document.querySelectorAll<HTMLElement>('[data-transport]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.transport===this.category)));this.busRoot.hidden=this.category!=='bus';this.note.hidden=this.category==='bus';this.note.textContent=({train:'電車：線路・駅・列車の運行は今後追加する予定です。',subway:'地下鉄：地下路線・駅・車両の運行は今後追加する予定です。',ship:'船：港・航路・船舶の運行は今後追加する予定です。'} as Record<string,string>)[this.category]??'';}
  showBus(){this.category='bus';this.paintCategory();}
- refresh(city:City){const unlocked=busRoadUnlocked(city);for(const b of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-road-kind="bus"],[data-profile="bus"],#transport-bus-road'))){b.disabled=!unlocked;b.title=unlocked?'バスのみ通行・歩行可 / 建設・転換 '+city.config.roadCost*2+' / マス':BUS_ROAD_REQUIREMENT;}document.getElementById('bus-road-unlock')!.textContent=unlocked?'バス専用道路：解放済み / 一般車・転入車は通行不可。歩行者は通れます。既存道路もドラッグで転換できます。':BUS_ROAD_REQUIREMENT;
+ refresh(city:City){const unlocked=busRoadUnlocked(city);for(const b of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-road-kind="bus"],[data-profile="bus"],#transport-bus-road'))){unavailable(b,unlocked?null:BUS_ROAD_REQUIREMENT);b.title=unlocked?'バスのみ通行・歩行可 / 建設・転換 '+city.config.roadCost*2+' / マス':BUS_ROAD_REQUIREMENT;}document.getElementById('bus-road-unlock')!.textContent=unlocked?'バス専用道路：解放済み / 一般車・転入車は通行不可。歩行者は通れます。既存道路もドラッグで転換できます。':BUS_ROAD_REQUIREMENT;
   const kind=document.querySelector<HTMLSelectElement>('#road-kind')!;if(!unlocked&&kind.value==='bus'){kind.value='general';kind.dispatchEvent(new Event('change',{bubbles:true}));}
  }
 }

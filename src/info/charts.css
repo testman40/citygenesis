@@ -1,0 +1,26 @@
+/* Only contents of the existing information, management and growth panels. */
+body.hud-layout #app .city-charts{min-width:0;width:100%;display:grid;gap:14px;margin:10px 0 18px}
+body.hud-layout #app .city-chart{min-width:0;width:100%;margin:0;padding:12px;border:1px solid #d5dddf;border-radius:10px;background:#fff;overflow:hidden;color:#17252b}
+body.hud-layout #app .city-chart h3{font-size:14px;margin:0 0 9px;line-height:1.5}
+body.hud-layout #app .chart-metric{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 7px;margin-bottom:10px;min-width:0}
+body.hud-layout #app .chart-metric>span{font-size:12px;line-height:1.5}
+body.hud-layout #app .chart-metric>span:first-child{flex-basis:100%;color:#43555d}
+body.hud-layout #app .chart-metric strong{font-size:28px;line-height:1.2;overflow-wrap:anywhere}
+body.hud-layout #app .chart-good{color:#247442}body.hud-layout #app .chart-bad{color:#a32d2d}
+body.hud-layout #app .chart-line{display:block;width:100%;height:166px;touch-action:pan-y;background:white;overflow:visible}
+body.hud-layout #app .chart-line:focus-visible{outline:2px solid #185fa5;outline-offset:2px}
+body.hud-layout #app .chart-legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;margin:6px 0}
+body.hud-layout #app .chart-legend span{border-left:12px solid;padding-left:5px}
+body.hud-layout #app .chart-bars{display:grid;gap:6px;width:100%;min-width:0}
+body.hud-layout #app .city-chart button.chart-bar{display:grid;grid-template-columns:minmax(72px,1.1fr) minmax(30px,1fr) minmax(32px,auto);align-items:center;gap:7px;min-width:0;width:100%;min-height:44px;padding:5px 0;border:0;border-radius:3px;background:transparent;font-size:12px!important;color:#17252b;text-align:left;box-shadow:none}
+body.hud-layout #app .city-chart button.chart-bar:hover,body.hud-layout #app .city-chart button.chart-bar:focus-visible{background:#edf3f5}
+body.hud-layout #app .chart-bar-label{font-size:12px;line-height:1.5;overflow-wrap:anywhere;min-width:0}
+body.hud-layout #app .chart-bar-track{position:relative;display:block;background:#e9eef0;height:18px;border-radius:3px;min-width:0}
+body.hud-layout #app .chart-bar-fill{position:absolute;display:block;height:100%;left:0;border-radius:3px;min-width:0}
+body.hud-layout #app .chart-signed:after{content:'';position:absolute;left:50%;top:-3px;bottom:-3px;border-left:1px solid #43555d}
+body.hud-layout #app .chart-bar-number{max-width:76px;overflow-wrap:anywhere;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}
+body.hud-layout #app .chart-readout{display:block;font-size:12px;line-height:1.6;overflow-wrap:anywhere;margin-top:8px;padding:6px 8px;min-height:32px;background:#f2f5f6;border-radius:5px;color:#17252b}
+body.hud-layout #app .city-chart .chart-note,body.hud-layout #app .city-chart .chart-empty{font-size:12px;line-height:1.6;color:#43555d;margin:8px 0 0}
+body.hud-layout #app #chart-map-details{margin:12px 0;padding-top:4px}
+body.hud-layout #app #information-panel:is([data-section="residents"],[data-section="requests"]) #chart-map-details{display:none}
+@media(min-width:1000px){body.hud-layout #app :is(#city-manage-charts,#city-growth-charts){grid-template-columns:repeat(2,minmax(0,1fr))}}

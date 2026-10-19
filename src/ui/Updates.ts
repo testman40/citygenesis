@@ -1,7 +1,14 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>施設の費用・改善案内版</strong></p>
+<p class="updates-current">表示中の版：<strong>PC情報ビュー・月次収支版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-20：PC情報ビューと月次負担を見やすく</h3><ul>
+<li><strong>PCに合わせて情報パネルを拡大</strong> — 幅1000px以上では、都市情報・経営・成長・施設一覧を画面幅に合う縦長パネルに統一。通知やカメラボタンとの重なりを避けます。</li>
+<li><strong>都市全体と施設ごとの月次収支</strong> — 税収・維持費・現在の黒字／赤字見込と直近決算を表示。場所別の施設負担を一覧で比較し、同じ負担がさらに増えた場合の収支も確認できます。</li></ul></article>
+<article class="update-entry"><h3>2026-10-20：道路と上下水道管をセットで建設</h3><ul>
+<li><strong>道路の下に上下水道管を同時敷設</strong> — 道路の種類・形状や橋にも対応。プレビューに道路費と管費を表示し、既存の管には二重課金しません。</li>
+<li><strong>既存道路もなぞって補完</strong> — 道路ツールで既存の道路をなぞると不足する上下水道管だけを敷設。給水・排水施設への接続が必要です。手動の管敷設・管撤去も使えます。</li>
+<li><strong>まとめて取り消し</strong> — 道路と管の工事を1回で取り消し・やり直し。道路を撤去しても陸地の地下管は残し、川上の橋を撤去した場合は付属する管も撤去します。</li></ul></article>
 <article class="update-entry"><h3>2026-10-20：施設ごとの費用・改善案内</h3><ul>
 <li><strong>場所と費用を比較</strong> — 「情報 → 経営・施設」に、公共施設・発電・給排水施設の場所付き一覧と費用の棒グラフを追加。種類で絞り込み、施設の場所へ移動できます。</li>
 <li><strong>12か月の推移と改善メモ</strong> — 選んだ施設の月次費用・直接収入・サービス状況をグラフで確認。未接続・能力の余裕・不足・税収との負担割合から改善案内を表示し、公共予算も確認できます。</li>

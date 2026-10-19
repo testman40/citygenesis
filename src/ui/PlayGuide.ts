@@ -23,7 +23,7 @@ export function nextActions(city:City):GuideAction[]{
   }
   // Undeveloped zones also need water; lack of buildings must not hide a blocked start.
   const dry=cells.find(c=>c.zone&&city.networkConnected(c)&&(city.waterUtility?.status(c.z*city.size+c.x).service??city.hydrology?.at(c.z*city.size+c.x)??city.waterRatio)<.8);
-  if(dry&&!result.some(a=>a.id==='water'))result.push({id:'water',title:'給水・排水と上下水道管をつなぎましょう',reason:'給水または排水が足りず、住宅・職場の建設と入居が進みません。',action:city.waterUtility?'給水施設と基本下水処理場（河川では排水口も可）を置き、道路上の上下水道管で住宅までつなぎます。':'取水施設・排水口・上下水道管の接続を確認します。',panel:city.waterUtility?'water-utility-panel':'water-panel',location:{x:dry.x,z:dry.z}});
+  if(dry&&!result.some(a=>a.id==='water'))result.push({id:'water',title:'給水・排水と上下水道管をつなぎましょう',reason:'給水または排水が足りず、住宅・職場の建設と入居が進みません。',action:city.waterUtility?'給水施設と基本下水処理場（河川では排水口も可）を置きます。新しい道路には上下水道管も付きます。既存道路は道路ツールでなぞり、管を補完して住宅までつなぎます。':'取水施設・排水口・上下水道管の接続を確認します。',panel:city.waterUtility?'water-utility-panel':'water-panel',location:{x:dry.x,z:dry.z}});
   const finance=city.finance();
   if(city.funds<0||((city.population>0||city.funds<500)&&finance.forecast.balance<0))result.push({id:'finance',title:city.funds<0?'建設資金が不足':'支出が税収を上回っています',reason:'現在配置の月次収支見込 '+finance.forecast.balance.toLocaleString('ja-JP'),action:'維持費・雇用・税率を確認し、必要な支出から見直します。',panel:'finance-panel'});
   result.sort((a,b)=>{const rank=(x:GuideAction)=>x.id==='bus-recovery'?0:x.id==='isolation'?1:x.id==='water'||x.id==='power'?2:x.id==='finance'&&city.funds<0?3:4;return rank(a)-rank(b);});

@@ -255,3 +255,21 @@ body.hud-layout #app .utility-bar-row b{text-align:right;font-size:12px;overflow
 body.hud-layout #app .utility-bar-track{display:block;height:14px;background:#e7edef;border-radius:3px;overflow:hidden}
 body.hud-layout #app .utility-bar-track i{display:block;height:100%;transition:width .25s}
 body.hud-layout #app .utility-graph p{font-size:12px;line-height:1.5;margin:6px 0 0}
+
+/* Desktop information pages share a full-height panel sized to the viewport. */
+@media(min-width:1000px){
+ body.hud-layout{--hud-info-width:clamp(440px,44vw,720px)}
+ body.hud-layout:is([data-workspace="info"],[data-workspace="manage"],[data-workspace="goals"],[data-workspace="build"]) #app #workspace-drawer{inset:var(--hud-top) 12px 12px auto;transform:none;width:var(--hud-info-width);max-width:var(--hud-info-width);height:auto;max-height:none;overflow-y:auto;font-size:14px}
+ body.hud-layout:is([data-workspace="info"],[data-workspace="manage"],[data-workspace="goals"],[data-workspace="build"]) #app #hud-notices{right:calc(var(--hud-info-width) + 24px);width:260px;max-width:calc(100vw - var(--hud-info-width) - var(--hud-rail) - 48px);max-height:calc(100dvh - var(--hud-top) - 116px)}
+ body.hud-layout:is([data-workspace="info"],[data-workspace="manage"],[data-workspace="goals"],[data-workspace="build"]) #app #hud-camera-controls{right:calc(var(--hud-info-width) + 24px);bottom:32px}
+ body.hud-layout:is([data-workspace="info"],[data-workspace="manage"],[data-workspace="goals"],[data-workspace="build"]) #app footer{right:calc(var(--hud-info-width) + 24px)}
+ body.hud-layout #app #city-info-charts{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.hud-layout #app .city-chart .chart-metric strong{font-size:30px}
+}
+@media(min-width:1000px){
+ body.hud-layout #app #workspace-drawer{container-type:inline-size}
+ body.hud-layout #app :is(#city-info-charts,#city-manage-charts,#city-growth-charts){grid-template-columns:minmax(0,1fr)}
+}
+@container(min-width:580px){
+ body.hud-layout #app :is(#city-info-charts,#city-manage-charts,#city-growth-charts){grid-template-columns:repeat(2,minmax(0,1fr))}
+}

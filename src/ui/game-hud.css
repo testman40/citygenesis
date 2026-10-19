@@ -273,3 +273,6 @@ body.hud-layout #app .utility-graph p{font-size:12px;line-height:1.5;margin:6px 
 @container(min-width:580px){
  body.hud-layout #app :is(#city-info-charts,#city-manage-charts,#city-growth-charts){grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+body.hud-layout #app .startup-budget-alert{background:#fff7e6;color:#543800;border:1px solid #c38c21;border-left:4px solid #c38c21;border-radius:10px;padding:12px;font-size:13px;line-height:1.6}
+body.hud-layout #app .startup-budget-alert p{margin:7px 0}
+body.hud-layout #app .startup-budget-alert button{min-height:44px;padding:8px;border:1px solid #b47b16;border-radius:6px;background:#fff;color:#543800;font-size:13px;cursor:pointer}

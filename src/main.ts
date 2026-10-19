@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import {StartupBudgetGuard,startupBlock} from './economy/StartupBudget';
 import {connectWaterInfrastructure,quotePipes} from './water/ConnectedWater';
 import {UtilityGraphs} from './water/UtilityGraphs';
 import {householdMoods} from './residents/HouseholdHappiness';
@@ -139,7 +140,7 @@ function hud() {
   const lines=ledger?[['住民税',ledger.residentTax],['就業税',ledger.jobTax],...Object.entries(ledger.costs).map(([k,v])=>[costNames[k as keyof typeof costNames]+(k==='interest'?'':'維持費'),-v]),['経常収支',ledger.balance],['建物自動建設・成長',-ledger.construction],['融資元金返済',-ledger.repayment],['月次資金増減',ledger.cashDelta]]:[];
   document.getElementById('finance-lines')!.innerHTML=lines.map(([label,value])=>'<div><span>'+label+'</span><b>'+fmtCash(Number(value))+'</b></div>').join('')+'<div class="finance-forecast"><span>現在配置の収支見込</span><b>'+fmtCash(financial.forecast.balance)+'</b></div>';
   const deficit=financial.forecast.balance<0,message=display.funds<0?'資金不足：成長が停滞しています。維持費削減と雇用・接続の回復、緊急融資を検討してください。':deficit?'維持費が税収を上回っています。現在の資金なら約'+Math.floor(display.funds/-financial.forecast.balance)+'か月分です。':'現在配置では経常黒字です。建設・成長費と元金返済は別に資金を消費します。';text('finance-warning',message);document.getElementById('finance-warning')!.classList.toggle('deficit',deficit||display.funds<0);text('finance-debt',fmtCash(financial.debt));(document.getElementById('emergency-loan') as HTMLButtonElement).disabled=financeLocked||jobs.busy||!financial.canBorrow;
-  text('loan-info','借入上限 '+fmtCash(financial.parameters.loanLimit)+' / 月利 '+fmtCash(financial.parameters.loanInterest*100)+'% / 自動返済は経常黒字の'+fmtCash(financial.parameters.repaymentRate*100)+'%まで');
+  const loan=display.loanQuote();text('loan-info',(financial.canBorrow?'今回の借入見込 '+fmtCash(loan.amount)+' / 借入後の手元資金 約'+fmtCash(display.funds+loan.amount)+(display.population===0?'（給排水の再建費・当面の維持費を確保）':'')+' / ':loan.reason+' / ')+'借入上限 '+fmtCash(financial.parameters.loanLimit)+' / 月利 '+fmtCash(financial.parameters.loanInterest*100)+'% / 自動返済は経常黒字の'+fmtCash(financial.parameters.repaymentRate*100)+'%まで');
   text('balance-info',display.difficulty==='normal'?(display.management?.lifecycle?.mode==='evolve'?'ノーマルの費用・税収は従来設定。再生モデルでは人口移動と空き家抑制を追加。':'ノーマルは従来の需要・成長・財政計算を維持。難易度設定は新規都市だけに適用されます。'):'建設費 '+fmtCash(financial.parameters.construction*100)+'% / 維持費 '+fmtCash(financial.parameters.maintenance*100)+'% / 税収 '+fmtCash(financial.parameters.tax*100)+'%。需要は月ごとに最大'+financial.parameters.maxDemandStep+'ポイントで調整。雇用・通勤・開始済み公共サービス・税率が影響します。'+(financial.parameters.housingVacancyWeight>0?'供給過剰の成長は抑制。成長判定の需要 R/C/I '+Object.values(financial.growthDemand).join('/'):'互換設定の需要・成長ルールを維持。'));
   text('population',fmt(display.population));text('funds',compactMoney(display.funds));document.getElementById('funds')!.title=fmtCash(display.funds);text('balance',(display.balance>=0?'+':'')+(Math.trunc(display.balance)||0).toLocaleString('ja-JP'));document.getElementById('balance')!.title=fmtCash(display.balance);paintAmount('balance',display.balance);paintAmount('funds',display.funds);
   document.querySelectorAll<HTMLElement>('#finance-lines b').forEach(el=>{const value=Number((el.textContent??'').replaceAll(',',''));el.dataset.tone=value>0?'positive':value<0?'negative':'neutral';});
@@ -248,10 +249,16 @@ try {
     try{const next=redo?history.redo(city):history.undo(city);if(!next)return;city=next;jobs.replace(next);view.replaceCity(next);selected=null;hoverCell=null;infraUI?.reset();workspace.didUndo(city);audio.effect('undo');status.textContent=redo?'直前の操作をやり直しました。':'直前の建設・撤去を取り消しました。';hud();}catch(e){updateStatus(e);}
   };
   workspace.onUndo=()=>restoreBuild(false);workspace.onRedo=()=>restoreBuild(true);
-  let experienceStamp=0;
+  const startupGuard=new StartupBudgetGuard(),startupAlert=document.createElement('section');startupAlert.id='startup-budget-alert';startupAlert.className='startup-budget-alert';startupAlert.hidden=true;startupAlert.setAttribute('role','status');
+  let startupShown='';const showStartupBudget=(block:NonNullable<ReturnType<typeof startupBlock>>)=>{startupAlert.replaceChildren();const title=document.createElement('strong');title.textContent='税収がないまま費用が続くため一時停止しました';const detail=document.createElement('p');detail.textContent=block.reason+' 学校などの増設より、給排水・入居と雇用の準備を優先しましょう。';const action=document.createElement('button');action.type='button';action.textContent=block.action;action.onclick=()=>{if(block.tool){workspace.close();setTool(block.tool);}else workspace.reveal(block.panel!);};startupAlert.append(title,detail,action);startupShown=block.id;startupAlert.hidden=false;};
+  let startupOwner=city;let experienceStamp=0;
   refreshExperience=()=>{
     if(!ready||busy||jobs.busy)return;
     if(performance.now()-experienceStamp<300)return;experienceStamp=performance.now();
+    if(startupOwner!==city){startupOwner=city;startupAlert.hidden=true;}
+    const stalled=startupGuard.observe(city,clock.speed>0);
+    if(stalled){setSpeed(0);showStartupBudget(stalled);}
+    const currentStartupBlock=startupBlock(city);if(!currentStartupBlock){startupAlert.hidden=true;startupShown='';}else if(!startupAlert.hidden&&startupShown!==currentStartupBlock.id)showStartupBudget(currentStartupBlock);
     const canUndo=!drawing&&!buildBefore&&!historyFinishing&&clock.speed===0&&history.available(city);
     const undo=document.getElementById('undo-build') as HTMLButtonElement;undo.disabled=!canUndo;undo.title=canUndo?history.label+'を取り消す（Ctrl / ⌘ + Z）':history.reason;
     const redo=document.getElementById('redo-build') as HTMLButtonElement;redo.disabled=drawing||!!buildBefore||historyFinishing||clock.speed!==0||!history.redoAvailable(city);redo.title=history.redoLabel+'をやり直す（Ctrl / ⌘ + Shift + Z）';
@@ -344,7 +351,7 @@ try {
   window.addEventListener('pagehide',()=>{ready=false;clearInterval(timer);clearInterval(autoTimer);jobs.replace(city);},{once:true});
   const slotLayout=new ResizeObserver(()=>{const bottom=document.querySelector('.save-panel')!.getBoundingClientRect().bottom;(document.querySelector('.transit-panel') as HTMLElement).style.top=(bottom+16)+'px';});slotLayout.observe(document.querySelector('.save-panel')!);
   document.addEventListener('city-facility-focus',e=>{const id=(e as CustomEvent<number>).detail,c=jobs.displayCity;if(!Number.isSafeInteger(id)||id<0||id>=c.size*c.size||!ready||busy||jobs.busy)return;workspace.close();setTool('select');view.tracking.stop();const cell={x:id%c.size,z:Math.floor(id/c.size)};selected=cell;view.focus(cell);view.highlight(cell);refreshInformation();});
-  publicResolutions.observe(city);gameLayout=new GameLayout(workspace,setTool,()=>jobs.displayCity);cityCharts=new CityCharts();setTool('select');
+  publicResolutions.observe(city);gameLayout=new GameLayout(workspace,setTool,()=>jobs.displayCity);document.getElementById('hud-notices')!.prepend(startupAlert);cityCharts=new CityCharts();setTool('select');
   buttons(true);void load();
   // Read-only diagnostics. No simulation mutation is exposed to the browser tests.
   if(import.meta.env.DEV||import.meta.env.MODE==='qa') (window as unknown as {cityDiagnostics:unknown}).cityDiagnostics={

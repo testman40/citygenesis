@@ -9,12 +9,15 @@ export function cityFacts(city:City,cells=city.snapshot().cells):CityFacts {
 }
 export function nextActions(city:City):GuideAction[]{
   const result:GuideAction[]=[];
+
+  if(city.population===0&&city.funds<0)return [{id:'finance',title:'入居を再開するための資金を確認',reason:'人口0で税収がなく、資金不足で住宅の成長が止まっています。学校などの増設は後にしましょう。',action:'緊急融資と維持費を確認し、道路・給排水・住宅の接続を整えます。',panel:'finance-panel'}];
   if(city.residents&&!city.residents.gateways(city).length)return [{id:'outside-road',title:'マップの端から街へ道路をつなぐ',reason:'新しい住民はマップ外から車で転入します。',action:'地図の端の道路を住宅までつなぎ、住宅の完成後に時間を進めましょう。',tool:'road'}];
   const failed=[...city.transit.operations.buses.values()].find(b=>b.state==='error');
   if(failed)result.push({id:'bus-recovery',title:'異常停止したバスを確認',reason:'道路や施設の変更で停止した便があります。',action:'便を選び、診断と復旧案内を確認します。',panel:'bus-recovery-panel'});
   const requests=citizenRequests(city);
   const cells=city.snapshot().cells;
   for(const r of requests){
+    if(r.id==='education'&&city.population<100){result.push({id:r.id,title:'学校は段階的に整備できます',reason:r.area+'。開拓期は入居と税収の確保を優先しましょう。',action:'給排水・住宅・働き口を先に整え、人口と収支が安定してから教育施設を増やしましょう。',mode:r.mode});continue;}
     // Affected cells are evidence of a problem area, never a guessed road gap.
     const target=r.id==='isolation'?cells.find(c=>(c.zone||c.facility)&&!city.networkConnected(c)):
       ['power','water','medical','education','fire','police'].includes(r.mode)?cells.find(c=>c.zone&&c.level>0&&['red','blue'].includes(informationAt(city,c.z*city.size+c.x,r.mode).state)):undefined;
@@ -26,7 +29,7 @@ export function nextActions(city:City):GuideAction[]{
   if(dry&&!result.some(a=>a.id==='water'))result.push({id:'water',title:'給水・排水と上下水道管をつなぎましょう',reason:'給水または排水が足りず、住宅・職場の建設と入居が進みません。',action:city.waterUtility?'給水施設と基本下水処理場（河川では排水口も可）を置きます。新しい道路には上下水道管も付きます。既存道路は道路ツールでなぞり、管を補完して住宅までつなぎます。':'取水施設・排水口・上下水道管の接続を確認します。',panel:city.waterUtility?'water-utility-panel':'water-panel',location:{x:dry.x,z:dry.z}});
   const finance=city.finance();
   if(city.funds<0||((city.population>0||city.funds<500)&&finance.forecast.balance<0))result.push({id:'finance',title:city.funds<0?'建設資金が不足':'支出が税収を上回っています',reason:'現在配置の月次収支見込 '+finance.forecast.balance.toLocaleString('ja-JP'),action:'維持費・雇用・税率を確認し、必要な支出から見直します。',panel:'finance-panel'});
-  result.sort((a,b)=>{const rank=(x:GuideAction)=>x.id==='bus-recovery'?0:x.id==='isolation'?1:x.id==='water'||x.id==='power'?2:x.id==='finance'&&city.funds<0?3:4;return rank(a)-rank(b);});
+  result.sort((a,b)=>{const rank=(x:GuideAction)=>x.id==='bus-recovery'?0:x.id==='isolation'?1:x.id==='water'||x.id==='power'?2:x.id==='finance'&&(city.funds<0||city.population<100)?3:4;return rank(a)-rank(b);});
   if(result.length)return result.slice(0,3);
   const facts=cityFacts(city,cells);
   if(!facts.roads)return [{id:'first-road',title:'最初の道路を敷きましょう',reason:'道路は住宅・職場・施設をつなぐ街の骨格です。',action:'道路を選び、地図上でドラッグします。',tool:'road'}];

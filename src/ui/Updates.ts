@@ -1,7 +1,11 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>PC情報ビュー・月次収支版</strong></p>
+<p class="updates-current">表示中の版：<strong>開拓期の資金保護・再建案内版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-20：開拓期の資金保護と再建案内</h3><ul>
+<li><strong>入居が止まったら一時停止</strong> — 人口0で入居条件を満たせず、維持費だけが6か月以上続いた場合は時間を止めて対処を案内。資金がマイナスの無人都市も保護します。入居準備が整った都市や入居済み都市はそのまま進行します。</li>
+<li><strong>学校より先に生活基盤を準備</strong> — 序盤はマップ外への一般道路・給水・排水・住宅・働き口を優先する案内を表示。施設の建設は引き続き選べます。</li>
+<li><strong>無人都市の再建資金</strong> — 緊急融資で給排水の再建費と当面の維持費を残せる額を提示。借入上限・利息・返済を維持し、借入前に金額と借入後の手元資金を確認できます。</li></ul></article>
 <article class="update-entry"><h3>2026-10-20：PC情報ビューと月次負担を見やすく</h3><ul>
 <li><strong>PCに合わせて情報パネルを拡大</strong> — 幅1000px以上では、都市情報・経営・成長・施設一覧を画面幅に合う縦長パネルに統一。通知やカメラボタンとの重なりを避けます。</li>
 <li><strong>都市全体と施設ごとの月次収支</strong> — 税収・維持費・現在の黒字／赤字見込と直近決算を表示。場所別の施設負担を一覧で比較し、同じ負担がさらに増えた場合の収支も確認できます。</li></ul></article>

@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';
 import {City} from '../src/simulation/City';import {expenseOverview,additionalFacilityBalance} from '../src/economy/ExpenseOverview';import {facilityEconomics} from '../src/economy/FacilityEconomics';
 test('the overview includes roads and facilities and does not alter financial state',()=>{
  const c=City.create(64);c.funds=1e6;c.apply({x:0,z:30},{x:30,z:30},'road');c.apply({x:10,z:29},{x:10,z:29},'police');const before=c.snapshot(),o=expenseOverview(c),f=c.finance().forecast;
- assert.equal(o.income,f.tax);assert.equal(o.expense,f.maintenance);assert.equal(o.balance,f.balance);assert.ok(o.expense>o.facilityExpense);assert.equal(o.status,'赤字');assert.match(o.advice,/改善/);assert.deepEqual(c.snapshot(),before);
+ assert.equal(o.income,f.tax);assert.equal(o.expense,f.maintenance);assert.equal(o.balance,f.balance);assert.ok(o.expense>o.facilityExpense);assert.equal(o.status,'赤字');assert.match(o.advice,/人口0|改善/);assert.deepEqual(c.snapshot(),before);
 });
 test('a second facility estimate applies only the additional expense, never an existing expense twice',()=>{
  assert.equal(additionalFacilityBalance(20,{income:0,cost:16}),4);assert.equal(additionalFacilityBalance(10,{income:0,cost:16}),-6);assert.equal(additionalFacilityBalance(-10,{income:0,cost:16}),-26);assert.equal(additionalFacilityBalance(10,{income:2,cost:3}),9);

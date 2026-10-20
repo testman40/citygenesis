@@ -136,7 +136,7 @@ export class CityView {
     this.controls.update(); this.controls.enableDamping=true;
   }
   focus(cell:Cell){if(!this.city.contains(cell))return;const direction=this.camera.position.clone().sub(this.controls.target).normalize();this.controls.enableDamping=false;this.controls.update();this.controls.target.set(cell.x+.5,0,cell.z+.5);this.camera.position.copy(this.controls.target).addScaledVector(direction,34);this.controls.update();this.controls.enableDamping=true;}
-  resize = () => { this.camera.aspect=innerWidth/innerHeight; this.camera.updateProjectionMatrix(); this.renderer.setSize(innerWidth,innerHeight); };
+  resize = () => { this.camera.aspect=innerWidth/innerHeight; this.camera.updateProjectionMatrix(); this.renderer.setSize(innerWidth,innerHeight,false); };
   groundPoint(x:number,y:number){const rect=this.renderer.domElement.getBoundingClientRect();if(rect.width<=0||rect.height<=0)return null;this.camera.updateMatrixWorld(true);this.ray.setFromCamera(new THREE.Vector2((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1),this.camera);const p=this.ray.ray.intersectPlane(this.plane,new THREE.Vector3());return p?{x:p.x,z:p.z}:null;}
   pick(x:number,y:number,clamp=false): Cell | null {const p=this.groundPoint(x,y);if(!p)return null;const c={x:Math.floor(p.x),z:Math.floor(p.z)};if(clamp){c.x=Math.max(0,Math.min(this.city.size-1,c.x));c.z=Math.max(0,Math.min(this.city.size-1,c.z));}return this.city.contains(c)?c:null;}
   private suggestionMesh:THREE.InstancedMesh|undefined;private suggestionRevision=-1;

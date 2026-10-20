@@ -1,3 +1,5 @@
+import {configureSupport,executeSupport} from '../support/BeginnerSupport';
+import type {SupportSettings} from '../support/SupportState';
 import type {HousingDensity} from '../urban/UrbanDevelopment';
 import {gridStroke} from './GridInput';
 import {yieldInfrastructure} from '../transit/yieldTask';
@@ -44,6 +46,8 @@ export class CityJobs {
  busRoute(name:string,stops:number[],fleet:number,id?:number,result?:(error?:unknown)=>void){const order=[...stops];this.enqueue(city=>{try{city.setBusRoute(name,order,fleet,id);result?.();}catch(error){if(result)result(error);else this.notify(error);}});}
  removeBusRoute(id:number){this.enqueue(city=>city.removeBusRoute(id));}
  routing(mode:"distance"|"time"){if(!this.busy){this.month(true,mode);return;}this.enqueue(async city=>{this.stable=city.snapshot();this.display=Object.assign(Object.create(Object.getPrototypeOf(city)),city,{management:city.management?structuredClone(city.management):undefined,budget:Object.assign(Object.create(Object.getPrototypeOf(city.budget)),city.budget,{target:{...city.budget.target},funded:{...city.budget.funded},effective:{...city.budget.effective}}),demand:{...city.demand},environment:city.environment?.displaySnapshot(),waterUtility:city.waterUtility?.displaySnapshot(),sanitation:city.sanitation?.displaySnapshot(),energy:city.energy?.displaySnapshot(),hydrology:city.hydrology?.displaySnapshot(),wellness:city.wellness.displaySnapshot(),safety:Object.assign(Object.create(Object.getPrototypeOf(city.safety)),city.safety,{results:new Map(city.safety.results),stations:new Map(city.safety.stations)}),traffic:city.traffic.displaySnapshot(),transit:city.transit.displaySnapshot()});await city.stepAsync({signal:this.abort!.signal},mode);});}
+ supportSettings(settings:SupportSettings,result?:(error?:unknown)=>void){const copy={...settings};this.enqueue(city=>{try{configureSupport(city,copy);result?.();}catch(e){result?.(e);}});}
+ supportBuild(id:string,automatic:boolean,result?:(error?:unknown)=>void){this.enqueue(city=>{try{executeSupport(city,id,automatic);result?.();}catch(e){result?.(e);}});}
  loan(){this.enqueue(city=>{try{city.emergencyLoan();}catch(error){this.notify(error);}});}
  budget(k:Sector,value:number){this.enqueue(city=>city.setBudget(k,value));}
  tax(value:number){this.enqueue(city=>city.setTaxRate(value));}

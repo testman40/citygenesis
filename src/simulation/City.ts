@@ -1,3 +1,4 @@
+import type {SupportState} from '../support/SupportState';
 import {UrbanDevelopment,HOUSING_DENSITIES,PARKING,densityUnlocked,type HousingDensity} from '../urban/UrbanDevelopment';
 import {productEconomy} from '../urban/LandValue';
 import {urbanDemand,type DemandValues} from '../demand/Demand';
@@ -37,6 +38,7 @@ export const ZONES: Zone[] = ['residential', 'commercial', 'industrial'];
 interface Chunk { roads: Uint8Array; zones: Uint8Array; levels: Uint8Array; ages: Uint16Array; facilities:Uint8Array; decline:Uint16Array }
 export interface Tile { road: boolean; zone: Zone | null; level: number; connected: boolean; networkConnected:boolean; facility:Facility|null }
 export class City {
+  support?:SupportState;
   /** A prepared road transaction changes its publication generation, not its graph content. */
   adoptNetworkRevision(revision:number){if(!Number.isSafeInteger(revision)||revision<0)throw new Error('道路更新番号が不正です');const from=this.network.revision;this.network.revision=revision;this.traffic.adoptGraphRevision(from,revision);this.transit.adoptGraphRevision(from,revision);}
   static workerExecutor:((state:CityState,signal?:AbortSignal)=>Promise<{state:CityState;cpuMs:number}>)|undefined;
@@ -134,7 +136,7 @@ export class City {
     for(const [key,chunk] of this.chunks){const [cx,cz]=key.split(',').map(Number);for(let i=0;i<256;i++){
       if(chunk.roads[i]||chunk.zones[i]||chunk.facilities[i])cells.push({x:cx*16+i%16,z:cz*16+Math.floor(i/16),road:chunk.roads[i]===1,zone:chunk.zones[i],level:chunk.levels[i],age:chunk.ages[i],facility:chunk.facilities[i],decline:chunk.decline[i]});
     }}
-    return {...(this.districts?{districts:this.districts.snapshot()}:{}),...(this.statistics?{statistics:structuredClone(this.statistics)}:{}),...(this.environment?{environment:this.environment.snapshot()}:{}),...(this.residents?{residents:this.residents.snapshot()}:{}),...(this.waterUtility?{waterUtility:this.waterUtility.snapshot()}:{}),...(this.sanitation?{sanitation:this.sanitation.snapshot()}:{}),...(this.energy?{energy:this.energy.snapshot()}:{}),...(this.hydrology?{hydrology:this.hydrology.snapshot()}:{}),...(this.management?{management:structuredClone(this.management)}:{}),...(this.budget.changed?{budget:this.budget.snapshot()}:{}),...(this.wellness.active?{wellness:this.wellness.snapshot()}:{}),...(this.safety.enabled?{safety:this.safety.snapshot()}:{}),...(this.transit.hasState?{transit:this.transit.snapshot()}:{}),traffic:this.traffic.snapshot(),developmentOrder:[...this.zoned.values()].map(c=>c.z*this.size+c.x),taxRate:this.taxRate,size:this.size,config:{...this.config},cells,month:this.month,population:this.population,funds:this.funds,tax:this.tax,maintenance:this.maintenance,balance:this.balance,constructionSpending:this.constructionSpending};
+    return {...(this.support?{support:structuredClone(this.support)}:{}),...(this.districts?{districts:this.districts.snapshot()}:{}),...(this.statistics?{statistics:structuredClone(this.statistics)}:{}),...(this.environment?{environment:this.environment.snapshot()}:{}),...(this.residents?{residents:this.residents.snapshot()}:{}),...(this.waterUtility?{waterUtility:this.waterUtility.snapshot()}:{}),...(this.sanitation?{sanitation:this.sanitation.snapshot()}:{}),...(this.energy?{energy:this.energy.snapshot()}:{}),...(this.hydrology?{hydrology:this.hydrology.snapshot()}:{}),...(this.management?{management:structuredClone(this.management)}:{}),...(this.budget.changed?{budget:this.budget.snapshot()}:{}),...(this.wellness.active?{wellness:this.wellness.snapshot()}:{}),...(this.safety.enabled?{safety:this.safety.snapshot()}:{}),...(this.transit.hasState?{transit:this.transit.snapshot()}:{}),traffic:this.traffic.snapshot(),developmentOrder:[...this.zoned.values()].map(c=>c.z*this.size+c.x),taxRate:this.taxRate,size:this.size,config:{...this.config},cells,month:this.month,population:this.population,funds:this.funds,tax:this.tax,maintenance:this.maintenance,balance:this.balance,constructionSpending:this.constructionSpending};
   }
   /** Compare committed states without involving rendering. Yield per chunk for large edits. */
   *roadDirtySteps(next:City):Generator<void> {
@@ -190,6 +192,7 @@ export class City {
     progress('道路ネットワーク',.4);yield;const roads=state.cells.filter(t=>t.road).map(t=>t.z*city.size+t.x);if(city.size>=256)yield*city.network.loadSteps(roads);else city.network.load(roads);
     yield;progress('施設と集計',.45);city.zoned.clear();for(const id of state.developmentOrder)city.zoned.set(`${id%city.size},${Math.floor(id/city.size)}`,{x:id%city.size,z:Math.floor(id/city.size)});
     for(const key of ['month','population','funds','tax','maintenance','balance','constructionSpending'] as const)city[key]=state[key];
+    if(state.support)city.support=structuredClone(state.support);
     if(state.districts)city.districts=new UrbanDevelopment(state.districts);
     if(state.statistics)city.statistics=structuredClone(state.statistics);
     if(state.environment)city.environment=CityEnvironment.restore(city.size,state.environment);

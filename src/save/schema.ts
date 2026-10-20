@@ -1,3 +1,4 @@
+import {validateSupport,type SupportState} from '../support/SupportState';
 import {validateDistricts,HOUSING_DENSITIES,type DistrictState} from '../urban/UrbanDevelopment';
 import {validateStatistics,type StatisticsState} from '../statistics/CityStatistics';
 import {validateEnvironment} from '../environment/validate';
@@ -24,7 +25,7 @@ import { BALANCE, type Balance } from '../simulation/config';
 import type { TrafficState } from '../traffic/Traffic';
 import type { Speed } from '../simulation/Clock';
 export interface SavedCell {x:number;z:number;road:boolean;zone:number;level:number;age:number;facility:number;decline:number}
-export interface CityState {districts?:DistrictState;statistics?:StatisticsState;environment?:EnvironmentState;residents?:ResidentState;waterUtility?:WaterUtilityState;sanitation?:SanitationState;energy?:EnergyState;hydrology?:HydrologyState;management?:ManagementState;budget?:BudgetState;size:number;wellness?:WellnessState;safety?:SafetyState;transit?:TransitState;traffic?:TrafficState;developmentOrder:number[];taxRate:number;config:Balance;cells:SavedCell[];month:number;population:number;funds:number;tax:number;maintenance:number;balance:number;constructionSpending:number}
+export interface CityState {support?:SupportState;districts?:DistrictState;statistics?:StatisticsState;environment?:EnvironmentState;residents?:ResidentState;waterUtility?:WaterUtilityState;sanitation?:SanitationState;energy?:EnergyState;hydrology?:HydrologyState;management?:ManagementState;budget?:BudgetState;size:number;wellness?:WellnessState;safety?:SafetyState;transit?:TransitState;traffic?:TrafficState;developmentOrder:number[];taxRate:number;config:Balance;cells:SavedCell[];month:number;population:number;funds:number;tax:number;maintenance:number;balance:number;constructionSpending:number}
 export interface SaveData {version:2|3|4|5;savedAt:string;city:CityState;clock:{speed:Speed;accumulated:number}}
 const obj=(v:unknown):Record<string,unknown>=>{if(!v||typeof v!=='object'||Array.isArray(v))throw new Error('保存データの形式が不正です');return v as Record<string,unknown>;};
 const number=(v:unknown,min:number,max:number,integer=false):number=>{if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max||(integer&&!Number.isInteger(v)))throw new Error('保存データの数値が不正です');return v;};
@@ -84,6 +85,7 @@ export function validateSave(input:unknown):SaveData {
  if(c.energy!==undefined)city.energy=validateEnergy(c.energy,size,[...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(s=>s.id),...(city.wellness?.facilities??[]).map(f=>f.id),...(city.transit?.infrastructure?.depots??[]).map(d=>d.id),...(city.hydrology?.outfalls??[])],city.hydrology?.river);
  if(c.sanitation!==undefined){if(!city.hydrology&&c.waterUtility===undefined)throw Error('下水管理には河川都市データが必要です');city.sanitation=validateSanitation(c.sanitation,size,[...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(s=>s.id),...(city.wellness?.facilities??[]).map(f=>f.id),...(city.transit?.infrastructure?.depots??[]).map(d=>d.id),...(city.hydrology?.outfalls??[]),...(city.energy?.plants??[]).map(p=>p.id)],city.hydrology?.river??[]);}
  if(c.waterUtility!==undefined){if(!city.sanitation)throw Error('施設式上下水道には下水管理が必要です');city.waterUtility=validateWaterUtility(c.waterUtility,size,[...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(p=>p.id),...(city.wellness?.facilities??[]).map(p=>p.id),...(city.transit?.infrastructure?.depots??[]).map(p=>p.id),...(city.energy?.plants??[]).map(p=>p.id),...city.sanitation.plants.map(p=>p.id),...(city.hydrology?.river??[]),...(city.hydrology?.outfalls??[])]);}
+ if(c.support!==undefined)city.support=validateSupport(c.support,city.month,city.size);
  if(c.management!==undefined)city.management=validateManagement(c.management,city.month);
  if(c.budget!==undefined)city.budget=validateBudget(c.budget);
  const occupiedBay=new Set<number>(),occupied=new Set([...cells.map(t=>t.z*size+t.x),...(city.safety?.stations??[]).map(t=>t.id),...(city.wellness?.facilities??[]).map(t=>t.id),...(city.transit?.infrastructure?.depots??[]).map(t=>t.id),...(city.energy?.plants??[]).map(t=>t.id),...(city.sanitation?.plants??[]).map(t=>t.id),...(city.waterUtility?.externals??[]),...(city.hydrology?.river??[]),...(city.hydrology?.outfalls??[])]);

@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import {SupportPanel} from './support/SupportPanel';
 import {createStarterCity} from './economy/StarterCity';
 import {PARKING} from './urban/UrbanDevelopment';
 import {LandValuePanel} from './urban/LandValuePanel';
@@ -97,6 +98,7 @@ const history=new BuildHistory();
 let residentsPanel:ResidentsPanel|undefined;let transportTools:TransportRoadTools|undefined;
 let gameLayout:GameLayout|undefined;
 let cityCharts:CityCharts|undefined;
+let supportPanel:SupportPanel|undefined;
 let refreshExperience:()=>void=()=>{};
 let observeScenario:(city:City)=>void=()=>{};
 const controlsObserver=new MutationObserver(records=>{for(const record of records)for(const node of Array.from(record.addedNodes)){if(node instanceof HTMLElement){if(node.matches('button'))decorateControls(node.parentElement!);else if(node.querySelector('button'))decorateControls(node);}}});
@@ -230,7 +232,7 @@ try {
   let previous=performance.now();
   document.addEventListener('visibilitychange',()=>{previous=performance.now();stop();});
   let lastInfraRefresh=0;
-  const timer=setInterval(()=>{const now=performance.now(),elapsed=(now-previous)/1000;previous=now;updateStatus();if(ready&&!busy&&!jobs.busy&&!contextLost)householdMoods.update(city,now,!document.hidden);if(city.transit.operations.active&&now-lastInfraRefresh>200){infraUI?.refresh();lastInfraRefresh=now;}refreshExperience();landValuePanel?.refresh(jobs.displayCity,view.overlay,selected);homeReadinessPanel?.refresh(jobs.displayCity,selected,tool);if(!jobs.busy)constructionBudgetPanel?.refresh(jobs.displayCity,tool,pointerOverField?hoverCell:null);if(audio.active&&ready&&!busy&&!jobs.busy&&!contextLost)audio.update(city,{position:view.camera.position,focus:view.controls.target,forward:view.controls.target.clone().sub(view.camera.position).normalize(),up:view.camera.up,distance:view.camera.position.distanceTo(view.controls.target),vehicles:[...city.streetVehicles().filter(p=>p.kind!=='bike'),...city.transit.operations.visible.buses.filter(p=>!['paused','error','garage','boarding','stopped'].includes(city.transit.operations.buses.get(p.id!)?.state??'garage'))],running:clock.speed>0});if(ready&&!busy&&!jobs.busy&&!drawing&&!historyFinishing&&!document.hidden&&!contextLost){const delta=Math.min(elapsed,clock.stepSeconds/Math.max(1,clock.speed));if(city.advanceResidents(delta*clock.speed)){workspace.invalidate();hud();}city.traffic.advance(delta*clock.speed);city.advanceEnvironment(delta*clock.speed);city.transit.operations.advance(delta*clock.speed*city.config.displayMinutesPerSecond*VEHICLE_VISUAL.timeScale,city.streetVehicles(city.traffic.displayTime,2),city.transit.vehicles(city.traffic.displayTime*VEHICLE_VISUAL.timeScale,1,false).filter(p=>!p.id?.startsWith('managed:')));continuous?.advance(delta*clock.speed*city.config.displayMinutesPerSecond*VEHICLE_VISUAL.timeScale);clock.advance(delta);gameLayout?.refreshDemand(jobs.displayCity);cityCharts?.refreshDemand(jobs.displayCity);if(!jobs.busy)view.environment.gameTime=city.residents?.state.time??(city.month+clock.snapshot().accumulated/clock.stepSeconds);}refreshLiveInformation();},50);
+  const timer=setInterval(()=>{const now=performance.now(),elapsed=(now-previous)/1000;previous=now;updateStatus();if(ready&&!busy&&!jobs.busy&&!contextLost)householdMoods.update(city,now,!document.hidden);if(city.transit.operations.active&&now-lastInfraRefresh>200){infraUI?.refresh();lastInfraRefresh=now;}refreshExperience();landValuePanel?.refresh(jobs.displayCity,view.overlay,selected);homeReadinessPanel?.refresh(jobs.displayCity,selected,tool);if(!jobs.busy)constructionBudgetPanel?.refresh(jobs.displayCity,tool,pointerOverField?hoverCell:null);if(audio.active&&ready&&!busy&&!jobs.busy&&!contextLost)audio.update(city,{position:view.camera.position,focus:view.controls.target,forward:view.controls.target.clone().sub(view.camera.position).normalize(),up:view.camera.up,distance:view.camera.position.distanceTo(view.controls.target),vehicles:[...city.streetVehicles().filter(p=>p.kind!=='bike'),...city.transit.operations.visible.buses.filter(p=>!['paused','error','garage','boarding','stopped'].includes(city.transit.operations.buses.get(p.id!)?.state??'garage'))],running:clock.speed>0});if(ready&&!busy&&!jobs.busy&&!drawing&&!historyFinishing&&!document.hidden&&!contextLost){const delta=Math.min(elapsed,clock.stepSeconds/Math.max(1,clock.speed));if(city.advanceResidents(delta*clock.speed)){workspace.invalidate();hud();}city.traffic.advance(delta*clock.speed);city.advanceEnvironment(delta*clock.speed);city.transit.operations.advance(delta*clock.speed*city.config.displayMinutesPerSecond*VEHICLE_VISUAL.timeScale,city.streetVehicles(city.traffic.displayTime,2),city.transit.vehicles(city.traffic.displayTime*VEHICLE_VISUAL.timeScale,1,false).filter(p=>!p.id?.startsWith('managed:')));continuous?.advance(delta*clock.speed*city.config.displayMinutesPerSecond*VEHICLE_VISUAL.timeScale);supportPanel?.tick(clock.speed>0&&workspace.category===null&&document.body.dataset.settingsOpen!=='true');clock.advance(delta);gameLayout?.refreshDemand(jobs.displayCity);cityCharts?.refreshDemand(jobs.displayCity);if(!jobs.busy)view.environment.gameTime=city.residents?.state.time??(city.month+clock.snapshot().accumulated/clock.stepSeconds);}refreshLiveInformation();},50);
   document.querySelector<HTMLInputElement>('#day-night')!.onchange=e=>view.environment.dayNight=(e.target as HTMLInputElement).checked;
   document.querySelector<HTMLInputElement>('#weather-enabled')!.onchange=e=>view.environment.weatherEnabled=(e.target as HTMLInputElement).checked;
   document.querySelector<HTMLSelectElement>('#weather')!.onchange=e=>view.environment.weather=(e.target as HTMLSelectElement).value as typeof view.environment.weather;
@@ -266,6 +268,7 @@ try {
   refreshExperience=()=>{
     if(!ready||busy||jobs.busy)return;
     if(performance.now()-experienceStamp<300)return;experienceStamp=performance.now();
+    supportPanel?.refresh();
     if(startupOwner!==city){startupOwner=city;startupAlert.hidden=true;}
     const stalled=startupGuard.observe(city,clock.speed>0);
     if(stalled){setSpeed(0);showStartupBudget(stalled);}
@@ -320,7 +323,7 @@ try {
       if(data){playableSize(data.city.size);const restored=await City.fromStateAsync(data.city,{signal,onProgress:progress,profile:loadProfile});const waterUpgraded=connectWaterInfrastructure(restored);restored.enableResidents();const t=performance.now(),prepared=await view.prepareCity(restored,{signal,onProgress:progress,profile:loadProfile});loadProfile.modelsMs=performance.now()-t;
         if(signal.aborted)throw new DOMException('ロードをキャンセルしました','AbortError');const restoredClock=new SimulationClock(()=>jobs.month(),restored.config.stepSeconds);restoredClock.restore({...data.clock,speed:waterUpgraded||restored.waterRatio<.8?0:data.clock.speed});
         await storage.activate(loaded.slot);if(signal.aborted){await storage.activate(priorSlot);throw new DOMException('ロードをキャンセルしました','AbortError');}loadCommitted=true;oldPosition.copy(view.camera.position);oldTarget.copy(view.controls.target);
-        jobs.replace(restored);view.replaceCity(restored,prepared);view.environment.gameTime=restored.residents?.state.time??(restored.month+data.clock.accumulated/restored.config.stepSeconds);city=restored;clock=restoredClock;selected=null;hoverCell=null;resetBusEditor();buildEpoch++;buildBefore=null;history.clear();workspace.reset(city);text('cell','マスにカーソルを合わせてください');setSpeed(clock.speed);
+        jobs.replace(restored);view.replaceCity(restored,prepared);view.environment.gameTime=restored.residents?.state.time??(restored.month+data.clock.accumulated/restored.config.stepSeconds);city=restored;clock=restoredClock;selected=null;hoverCell=null;resetBusEditor();buildEpoch++;buildBefore=null;history.clear();workspace.reset(city);text('cell','マスにカーソルを合わせてください');setSpeed(city.support?.mode==='auto'?0:clock.speed);
         progress('景観を仕上げ',.96);while(view.updates.size||city.dirty.size){if(signal.aborted)throw new DOMException('ロードをキャンセルしました','AbortError');await new Promise<void>(r=>setTimeout(r,16));}if(signal.aborted)throw new DOMException('ロードをキャンセルしました','AbortError');progress('ロード完了',1);(document.getElementById('tax-rate') as HTMLSelectElement).value=String(city.taxRate);hud();text('save-status',waterUpgraded?'上下水道を施設・配管方式へ切り替え、一時停止しました。給水施設・上下水道管・排水施設を接続してください。':city.waterRatio<.8?'給排水が不足しているため一時停止しました。施設と配管を確認してください。':'保存データを復元しました');
       }else{connectWaterInfrastructure(city);city.enableResidents();workspace.reset(city,true);setSpeed(0);history.clear('建設・撤去を取り消し・やり直しできます。');text('save-status','保存データなし · 自動保存は15秒ごと');}
       saveBlocked=false;document.getElementById('save-status')!.classList.remove('failure');
@@ -369,6 +372,11 @@ try {
   homeReadinessPanel=new HomeReadinessPanel();
   landValuePanel=new LandValuePanel(()=>{jobs.infrastructure(c=>c.enableUrbanDevelopment());hud();refreshInformation();});
   const beginnerVideo=new BeginnerVideo(document.getElementById('workspace-help')!,document.getElementById('hud-notices')!,()=>setSpeed(0));workspace.onCityReset=fresh=>beginnerVideo.reset(fresh);
+  supportPanel=new SupportPanel(()=>jobs.displayCity,()=>!ready||busy||jobs.busy||drawing||historyFinishing,
+    (settings,done)=>jobs.supportSettings(settings,done),
+    (proposal,automatic,done)=>{if(!automatic)setSpeed(0);const owner=city,before=automatic?null:city.snapshot();jobs.supportBuild(proposal.id,automatic,error=>{if(!error){if(before&&owner===city)history.record(city,before,'初心者サポート：'+proposal.title);document.dispatchEvent(new CustomEvent('city-ui-notice',{detail:'サポート：'+proposal.title+'を実行しました'}));workspace.invalidate();}done(error);});},
+    proposal=>{workspace.close();setTool('select');view.focus(proposal.cells[0]);view.showSuggestions(proposal.cells);},
+    ()=>{workspace.open('help');const target=document.getElementById('beginner-support-panel') as HTMLDetailsElement;target.open=true;document.getElementById('workspace-drawer')!.scrollTop=0;});
   buttons(true);void load();
   // Read-only diagnostics. No simulation mutation is exposed to the browser tests.
   if(import.meta.env.DEV||import.meta.env.MODE==='qa') (window as unknown as {cityDiagnostics:unknown}).cityDiagnostics={

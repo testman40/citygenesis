@@ -315,3 +315,14 @@ body.hud-layout #app #hud-context [data-housing-density][aria-pressed="true"]{ba
 body.hud-layout #app #world{position:fixed;inset:0;z-index:0;overflow:hidden;contain:strict;isolation:isolate}
 body.hud-layout #app #world>canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
 body.hud-layout #app :is(#hud-context,#workspace-drawer){isolation:isolate;contain:paint}
+
+/* Beginner support uses the existing help panel and compact notice rail. */
+body.hud-layout #app .support-panel{border:1px solid var(--hud-line);border-left:4px solid #0f6e56;border-radius:10px;background:white;padding:12px;color:var(--hud-ink);margin-bottom:12px}
+body.hud-layout #app .support-panel summary{font-size:15px;font-weight:700;cursor:pointer;min-height:44px;display:list-item;align-content:center}
+body.hud-layout #app .support-panel :is(p,li,label){font-size:13px;line-height:1.6;overflow-wrap:anywhere}body.hud-layout #app .support-panel ol{padding-left:22px}body.hud-layout #app .support-note{font-size:12px;color:#435c68}
+body.hud-layout #app #support-settings,body.hud-layout #app .support-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+body.hud-layout #app #support-settings label{display:grid;gap:4px}body.hud-layout #app #support-settings :is(input,select){min-width:0;width:100%;box-sizing:border-box;min-height:44px;font-size:14px;background:#fff;color:#172c35;border:1px solid #9caeb5;border-radius:5px}
+body.hud-layout #app .support-panel button{min-height:44px;font-size:13px;padding:8px 10px;border:1px solid #0f6e56;border-radius:7px;background:#edf7f2;color:#0f5946}body.hud-layout #app .support-actions{display:flex;flex-wrap:wrap;gap:8px}body.hud-layout #app .support-actions svg{width:18px;height:18px;vertical-align:middle}
+body.hud-layout #app .support-panel .support-negative{color:#a32d2d}body.hud-layout #app .support-panel .support-positive{color:#3b6d11}
+body.hud-layout #app #hud-notices .support-notice{background:#fff;border:1px solid var(--hud-line);border-left:4px solid #0f6e56;border-radius:10px;padding:10px 12px;color:var(--hud-ink);font-size:13px;line-height:1.5}body.hud-layout #app .support-notice h3{font-size:14px;margin:0 0 6px}body.hud-layout #app .support-notice p{margin:6px 0}body.hud-layout #app .support-notice button{min-height:44px!important;margin:4px 4px 0 0}body.hud-layout #app .support-notice span{display:block}body.hud-layout #app #support-mode-help{border-left:3px solid #0f6e56;padding:8px;background:#edf7f2}
+@media(max-width:700px){body.hud-layout #app #support-settings,body.hud-layout #app .support-metrics{grid-template-columns:minmax(0,1fr)}}

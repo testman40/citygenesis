@@ -246,6 +246,8 @@ try {
   infoMenu=new InformationMenu(mode=>{if(mode!=='normal'&&workspace.category!=='info')workspace.open('info');if(view.overlay!==mode)view.setOverlay(mode);refreshInformation();});
   const informationMode=(mode:typeof view.overlay)=>{workspace.open('info');infoMenu!.openMode(mode);};
   document.addEventListener('city-demand-open',()=>informationMode('demand'));
+  document.addEventListener('city-map-warning',event=>{if(!ready||busy||jobs.busy)return;const detail=(event as CustomEvent<{cell:Cell;request:string}>).detail;if(!detail||!city.contains(detail.cell))return;setTool('select');selected=detail.cell;view.highlight(selected);workspace.open('info');document.querySelector<HTMLButtonElement>('[data-info-tab="requests"]')!.click();refreshInformation();const card=Array.from(document.querySelectorAll<HTMLElement>('[data-request-card]')).find(e=>e.dataset.requestCard===detail.request);if(card){card.tabIndex=-1;card.focus({preventScroll:true});card.scrollIntoView({block:'nearest'});}});
+
   workspace.onNavigate=category=>{if(category==='transit')transportTools?.showBus();if(category!=='info')infoMenu?.close();else if(infoMenu?.state.tab===null)document.querySelector<HTMLButtonElement>('[data-info-tab="requests"]')?.click();if(category==='save')(document.getElementById('new-city-panel') as HTMLDetailsElement).open=true;};
   workspace.onAction=action=>{
     if(!ready||busy||jobs.busy||historyFinishing)return;

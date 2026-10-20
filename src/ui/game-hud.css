@@ -326,3 +326,7 @@ body.hud-layout #app .support-panel button{min-height:44px;font-size:13px;paddin
 body.hud-layout #app .support-panel .support-negative{color:#a32d2d}body.hud-layout #app .support-panel .support-positive{color:#3b6d11}
 body.hud-layout #app #hud-notices .support-notice{background:#fff;border:1px solid var(--hud-line);border-left:4px solid #0f6e56;border-radius:10px;padding:10px 12px;color:var(--hud-ink);font-size:13px;line-height:1.5}body.hud-layout #app .support-notice h3{font-size:14px;margin:0 0 6px}body.hud-layout #app .support-notice p{margin:6px 0}body.hud-layout #app .support-notice button{min-height:44px!important;margin:4px 4px 0 0}body.hud-layout #app .support-notice span{display:block}body.hud-layout #app #support-mode-help{border-left:3px solid #0f6e56;padding:8px;background:#edf7f2}
 @media(max-width:700px){body.hud-layout #app #support-settings,body.hud-layout #app .support-metrics{grid-template-columns:minmax(0,1fr)}}
+
+/* Only actual urgent citizen requests are interactive red map alerts. */
+body.hud-layout .city-map-badge[data-warning="true"]{pointer-events:auto;cursor:pointer}
+body.hud-layout .city-map-badge[data-warning="true"]:focus-visible{outline:3px solid #172c35;outline-offset:3px}

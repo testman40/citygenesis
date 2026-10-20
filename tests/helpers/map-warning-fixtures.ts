@@ -1,0 +1,3 @@
+import fs from 'node:fs';import {createStarterCity} from '../../src/economy/StarterCity';
+const c=createStarterCity();c.zoneHousingStroke({x:11,z:33},{x:15,z:33},'low');c.applyStroke({x:13,z:31},{x:17,z:31},'industrial');for(let i=0;i<24;i++){c.advanceResidents(1);c.step();}c.apply({x:23,z:33},{x:23,z:33},'elementary');
+const save=()=>({version:5,savedAt:'2026-10-20',city:c.snapshot(),clock:{speed:0,accumulated:0}});fs.writeFileSync('work/map-warning-healthy.json',JSON.stringify(save()));c.apply({x:20,z:34},{x:20,z:34},'residential');fs.writeFileSync('work/map-warning-isolated.json',JSON.stringify(save()));console.log(c.population,c.disconnected);

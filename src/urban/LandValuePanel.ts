@@ -1,0 +1,15 @@
+import {landValueAt,productEconomy,PRODUCT_TIERS} from './LandValue';
+import {HOUSING_DENSITIES,PARKING} from './UrbanDevelopment';
+import type {City,Cell} from '../simulation/City';
+import type {InfoMode} from '../info/CityInformation';
+const fmt=(v:number)=>v.toLocaleString('ja-JP',{maximumFractionDigits:1});
+export class LandValuePanel {
+ private root=document.createElement('section');private stamp=0;private key='';
+ constructor(private enable:()=>void){this.root.id='land-value-panel';this.root.className='urban-card';this.root.hidden=true;document.getElementById('city-info-charts')!.after(this.root);this.root.addEventListener('click',e=>{if((e.target as Element).closest('[data-enable-products]'))this.enable();});}
+ refresh(c:City,mode:InfoMode,selected:Cell|null){
+  this.root.hidden=mode!=='landValue';if(this.root.hidden||performance.now()-this.stamp<400)return;this.stamp=performance.now();
+  const cells=[...c.zoneCells()],sample=selected??cells[0]??{x:Math.floor(c.size/2),z:Math.floor(c.size/2)},value=landValueAt(c,sample.z*c.size+sample.x),average=cells.length?Math.round(cells.reduce((sum,p)=>sum+landValueAt(c,p.z*c.size+p.x).value,0)/cells.length):null,products=productEconomy(c,true),density=c.districts?.housing.get(sample.z*c.size+sample.x),lots=[...(c.districts?.parking??[])],used=[...c.traffic.parkingUsage.values()].reduce((a,b)=>a+b,0);
+  const state=JSON.stringify([sample,value,average,products,density,lots,used,c.traffic.parkingSavedDistance,!!c.districts]);if(state===this.key)return;this.key=state;
+  this.root.innerHTML=`<h3>地価マップ</h3><p class="urban-metric">${value.value}<small> / 100</small></p><p>選択地点 X ${sample.x} / Z ${sample.z}${density?' · '+HOUSING_DENSITIES[density].name:''} · 開発区画の平均 ${average??'—'}</p><div class="land-value-legend"><span>低い</span><span>中間</span><span>高い</span></div><p>道路 +${value.access} / 電気・上下水道 +${value.utilities} / 公共・公園 +${fmt(value.amenities)}<br>大気 −${fmt(value.pollution)} / 騒音 −${fmt(value.noise)} / 混雑 −${fmt(value.traffic)}</p><h3>地域の商品構成</h3>${PRODUCT_TIERS.map((label,i)=>`<div class="urban-bar"><span>${label}</span><meter min="0" max="${Math.max(1,...products.demand)}" value="${products.demand[i]}">${products.demand[i]}</meter><b>${products.demand[i]}</b></div>`).join('')}<p>地価45以上で上質な商品、70以上で高付加価値品へ。棒は稼働する商業・工業の雇用枠を商品段階別に集計したものです。</p><p>付加価値による追加税収見込 <strong>+${fmt(products.bonus)} / 月</strong></p>${c.districts?'':'<button type="button" data-enable-products>この都市で商品による付加価値収入を開始</button>'}<small>地価による雇用税収への加算は最大10%。貨物・在庫の運搬は対象外です。旧都市は開始操作または新しい住宅密度・駐車場の利用後に収入へ反映します。</small><h3>駐車場</h3><p>${lots.length}か所 · 利用 ${used} / ${lots.length*PARKING.spaces}台</p><p>目的地付近の車移動を徒歩に切り替えた距離：${c.traffic.parkingSavedDistance} 台・マス / 通勤片道</p>${lots.map(id=>`<div class="urban-bar"><span>X ${id%c.size} / Z ${Math.floor(id/c.size)}</span><meter min="0" max="${PARKING.spaces}" value="${c.traffic.parkingUsage.get(id)??0}"></meter><b>${c.traffic.parkingUsage.get(id)??0}/${PARKING.spaces}</b></div>`).join('')}<small>歩ける職場が近く、空きがあり、車が帰宅できる道路で利用されます。道路全体の混雑が必ず減るわけではありません。</small>`;
+ }
+}

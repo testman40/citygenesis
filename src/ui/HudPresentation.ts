@@ -8,7 +8,7 @@ export function toolGroup(tool:Tool):HudGroup|null{
  if(['residential','commercial','industrial'].includes(tool))return tool as HudGroup;
  if(['power','wind','solar'].includes(tool))return 'power';
  if(['water','externalWater','pipe','pipe-remove','outfall','sewage','advancedSewage'].includes(tool))return 'water';
- if(['depot','bus-stop','bus-remove'].includes(tool))return 'transit';
+ if(['parking','depot','bus-stop','bus-remove'].includes(tool))return 'transit';
  if(isPublicKind(tool))return 'public';
  if(tool==='erase')return 'erase';
  return 'info';

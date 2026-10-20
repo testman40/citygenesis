@@ -29,7 +29,7 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
    const id=z*city.size+x,roadProfile=city.network.profile(id),load=city.traffic.congestion(id);
    const response=overlay==='fire'||overlay==='police'?city.safety.responseAt(id,overlay):null;
    const civic=overlay==='medical'?city.wellness.roadCoverage(id,'medical'):overlay==='education'?city.wellness.roadCoverage(id,'elementary')*.6+city.wellness.roadCoverage(id,'highSchool')*.4:0;
-   const sewer=overlay==='sewage'&&city.sanitation?(hydro?.treatmentAt(id).ratio??0):0;const color=(overlay==='air'||overlay==='noise'||overlay==='environment')?INFO_STYLE.neutral.color:overlay==='normal'?(city.network.busOnly.has(id)?'#386f72':ROAD_VISUAL.asphaltColor):INFO_STYLE[informationAt(city,owner,overlay).state].color;
+   const sewer=overlay==='sewage'&&city.sanitation?(hydro?.treatmentAt(id).ratio??0):0;const color=(overlay==='landValue'||overlay==='air'||overlay==='noise'||overlay==='environment')?INFO_STYLE.neutral.color:overlay==='normal'?(city.network.busOnly.has(id)?'#386f72':ROAD_VISUAL.asphaltColor):INFO_STYLE[informationAt(city,owner,overlay).state].color;
    add('surface',px,.025,pz,1,.045,1,'#d5d5c5');add('surface',px,.054,pz,access[1]||access[3]?1:roadProfile.width,.04,access[0]||access[2]?1:roadProfile.width,color);
    const direction=city.network.directions.get(id);if(direction!==undefined){const angle=[Math.PI,Math.PI/2,0,-Math.PI/2][direction];for(const side of [-1,1])mark('detail',px+Math.sin(angle)*.06+Math.cos(angle)*side*.06,.09,pz+Math.cos(angle)*.06-Math.sin(angle)*side*.06,.025,.012,.16,'#dce9cf',angle+side*.6);}
    for(let n=0;n<4;n++){if(!access[n])continue;
@@ -50,7 +50,7 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
    const medical=overlay==='medical'?(welfare?.medical??Math.max(0,...city.network.adjacent(owner).map(r=>city.wellness.roadCoverage(r,'medical')))):0;
    const education=overlay==='education'?(welfare?(welfare.elementary*.6+welfare.highSchool*.4):Math.max(0,...city.network.adjacent(owner).map(r=>city.wellness.roadCoverage(r,'elementary')*.6+city.wellness.roadCoverage(r,'highSchool')*.4))):0;
    const cover=overlay==='medical'?medical:education;
-   const sewer=overlay==='sewage'&&city.sanitation?(hydro?.treatmentAt(owner).ratio??0):0;const tint=(overlay==='air'||overlay==='noise'||overlay==='environment')?INFO_STYLE.neutral.color:overlay==='normal'?(!t.networkConnected?'#c08b7c':t.zone?palette[t.zone]:'#bac8bd'):INFO_STYLE[informationAt(city,owner,overlay).state].color;
+   const sewer=overlay==='sewage'&&city.sanitation?(hydro?.treatmentAt(owner).ratio??0):0;const tint=(overlay==='landValue'||overlay==='air'||overlay==='noise'||overlay==='environment')?INFO_STYLE.neutral.color:overlay==='normal'?(!t.networkConnected?'#c08b7c':t.zone?palette[t.zone]:'#bac8bd'):INFO_STYLE[informationAt(city,owner,overlay).state].color;
    if(t.level||t.facility)add('surface',px,.037,pz,.96,.065,.96,'#d6d9cc');else mark('surface',px,.037,pz,.96,.065,.96,tint);
    // Keep category borders even when disconnected; the fill still indicates isolation.
    const border=overlay==='normal'&&t.zone?palette[t.zone]:tint;
@@ -59,7 +59,8 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
    if(t.facility){
     const facilityStart=parts.length;
     const body=t.networkConnected?'#ede5d3':'#a2aaa4';
-    if(t.facility==='externalWater'){add('mass',px-.20,.30,pz,.33,.42,.65,body);add('roof',px-.20,.55,pz,.40,.08,.71,'#5a93a7');add('mass',px+.20,.31,pz,.35,.44,.55,'#94c5cf');for(const dz of [-.18,.18])mark('detail',px+.20,.55,pz+dz,.34,.03,.035,'#d9edf0');mark('detail',px-.20,.61,pz+.18,.20,.05,.09,'#69d4d0');}
+    if(t.facility==='parking'){add('surface',px,.08,pz,.88,.05,.88,'#626f71');for(const dx of [-.28,0,.28])mark('detail',px+dx,.115,pz,.015,.008,.72,'#eef0de');for(const dx of (city.traffic.parkingUsage.get(owner)??0)>12?[-.15,.15]:(city.traffic.parkingUsage.get(owner)??0)>0?[-.15]:[]){add('mass',px+dx,.18,pz-.15,.18,.14,.34,'#b7c6bd');add('detail',px+dx,.27,pz-.16,.16,.08,.18,'#718e9e');}mark('detail',px,.12,pz+.29,.26,.012,.07,'#e9eadc');}
+    else if(t.facility==='externalWater'){add('mass',px-.20,.30,pz,.33,.42,.65,body);add('roof',px-.20,.55,pz,.40,.08,.71,'#5a93a7');add('mass',px+.20,.31,pz,.35,.44,.55,'#94c5cf');for(const dz of [-.18,.18])mark('detail',px+.20,.55,pz+dz,.34,.03,.035,'#d9edf0');mark('detail',px-.20,.61,pz+.18,.20,.05,.09,'#69d4d0');}
     else if(t.facility==='sewage'||t.facility==='advancedSewage'){const advanced=t.facility==='advancedSewage';add('mass',px-.22,.29,pz,.30,.38,.68,body);add('mass',px-.22,.51,pz,.34,.07,.72,advanced?'#5f899b':'#718e88');for(const dz of [-.20,.20]){add('mass',px+.20,.20,pz+dz,.40,.20,.32,'#9bb1a9');add('surface',px+.20,.32,pz+dz,.31,.02,.24,advanced?'#76b4bc':'#7aab9e');add('detail',px+.20,.35,pz+dz,.025,.025,.28,'#d2ddd3');}mark('detail',px-.22,.56,pz+.22,.20,.04,.08,'#84d2bd');if(advanced)add('detail',px-.2,.64,pz-.18,.18,.18,.25,'#bdcfc8');}
     else if(t.facility==='wind'){add('surface',px,.10,pz,.76,.08,.76,'#c5d1c9');add('mass',px,.66,pz,.09,1.12,.09,body);add('mass',px,1.22,pz,.17,.12,.17,'#4e7f86');for(let blade=0;blade<3;blade++){const a=blade*Math.PI*2/3;add('detail',px+Math.sin(a)*.23,1.0,pz+Math.cos(a)*.23,.07,.62,.25,'#e1e9df',a);if(t.networkConnected)parts[parts.length-1].rotor={x:px,z:pz};}mark('detail',px,1.33,pz,.10,.04,.10,'#e8bb78');}
     else if(t.facility==='solar'){add('surface',px,.10,pz,.86,.08,.84,'#c5d1c9');for(const dx of [-.23,.23]){add('mass',px+dx,.22,pz,.025,.24,.55,'#869d99');add('mass',px+dx,.36,pz,.39,.055,.72,'#365e85');for(const dz of [-.23,0,.23])add('detail',px+dx,.395,pz+dz,.34,.009,.012,'#89bac9');}if(quality==='high')add('detail',px+.39,.23,pz+.31,.10,.24,.14,'#d6ded2');}
@@ -128,6 +129,7 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
       if(zone==='industrial'){for(const dx of [-.25,0,.25])add('detail',px+dx,.47+level*.20,pz+.12,.17,.07,.25,'#d1dcce');add('detail',px+.33,.16,pz+.40,.18,.1,.12,'#c4a375');}
     }
     // Existing front faces point south; rotate toward the first adjacent road.
+    const density=zone==='residential'?city.districts?.housing.get(owner):undefined;if(density){const factor=density==='low'?.8:density==='medium'?1.35:2.7;for(let j=buildingStart;j<parts.length;j++){const p=parts[j];if(p.shape==='foliage')continue;p.y=.09+(p.y-.09)*factor;p.h*=factor;}if(density==='high')for(let floor=0;floor<level*3;floor++)for(const dx of [-.19,.19])add('detail',px+dx,.30+floor*.34,pz+.35,.14,.16,.018,'#789ca2');}
     const front=access.findIndex(Boolean),angle=orientFront(parts,buildingStart,px,pz,front);
     if(front>=0)add('surface',px+Math.sin(angle)*.39,.09,pz+Math.cos(angle)*.39,front%2?.27:.16,.025,front%2?.16:.27,'#e3dfca');
    }
@@ -140,7 +142,7 @@ export function createChunk(city:City,cx:number,cz:number,overlay:Overlay,qualit
    if(nearRoad&&seed%17===0){add('detail',px,.17,pz,.38,.06,.13,'#b7a382');add('detail',px-.13,.09,pz,.04,.14,.07,'#7a8779');add('detail',px+.13,.09,pz,.04,.14,.07,'#7a8779');}
   }
   const busStop=city.transit.stopAt(owner);if(busStop){const stopStart=parts.length;const active=city.network.has(owner);add('surface',x+.10,.10,pz,.16,.08,.70,active?'#72c4c7':'#bf8070');add('mass',x+.09,.34,z+.72,.025,.50,.025,'#657d7b');add('detail',x+.09,.57,z+.72,.15,.14,.035,active?'#86d5dc':'#d18770');if(quality==='high'){add('mass',x+.12,.31,z+.38,.03,.45,.36,'#9fb5ad');add('mass',x+.16,.56,z+.38,.30,.05,.44,'#e8d7b3');}if(busStop.heading!==undefined){const angle=busStop.heading===2?Math.PI:busStop.heading===1?-Math.PI/2:busStop.heading===3?Math.PI/2:0,co=Math.cos(angle),si=Math.sin(angle);for(let i=stopStart;i<parts.length;i++){const p=parts[i],dx=p.x-px,dz=p.z-pz;p.x=px+dx*co+dz*si;p.z=pz-dx*si+dz*co;p.angle+=angle;}}}
-  if(overlay!=='normal'&&(t.road||t.zone||t.facility)){
+  if(overlay!=='normal'&&overlay!=='landValue'&&(t.road||t.zone||t.facility)){
    const info=informationAt(city,owner,overlay);if(info.state!=='neutral'){
     let top=.08;for(let i=tileStart;!t.road&&i<parts.length;i++)if(parts[i].shape==='mass'||parts[i].shape==='roof')top=Math.max(top,parts[i].y+parts[i].h*.5);
     const tint=INFO_STYLE[info.state].color;add('surface',px,top+.025,pz,.94,.012,.94,tint);parts[parts.length-1].highlight=true;

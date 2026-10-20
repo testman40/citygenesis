@@ -1,9 +1,10 @@
+import {PARKING} from '../urban/UrbanDevelopment';
 import type {City} from '../simulation/City';
 import {PUBLIC_FACILITIES,publicFacility,isPublicKind} from '../services/PublicFacilities';
 import {wellnessGroup} from '../services/Wellness';
 import {WATER} from '../water/Hydrology';
 
-export const FACILITY_NAMES={...PUBLIC_FACILITIES,power:'発電所',water:'給水施設',wind:'風力発電',solar:'太陽光発電',externalWater:'外部水道接続',sewage:'基本下水処理場',advancedSewage:'高度下水処理場',outfall:'排水口'} as const;
+export const FACILITY_NAMES={parking:'駐車場',...PUBLIC_FACILITIES,power:'発電所',water:'給水施設',wind:'風力発電',solar:'太陽光発電',externalWater:'外部水道接続',sewage:'基本下水処理場',advancedSewage:'高度下水処理場',outfall:'排水口'} as const;
 export type FacilityKind=keyof typeof FACILITY_NAMES;
 export const MAX_FACILITY_HISTORY=2048;
 export interface FacilityRecord {id:number;kind:FacilityKind;cost:number;load:number|null}
@@ -22,7 +23,8 @@ export function facilityEconomics(c:City):FacilityEconomics[]{
  for(const [id,kind] of sites){
   const cell={x:id%c.size,z:Math.floor(id/c.size)},connected=c.networkConnected(cell);
   let cost=0,construction=0,active=connected,load:number|null=null,capacity:number|null=null,used:number|null=null,loadLabel='利用率未集計',sector:FacilityEconomics['sector']=null;
-  if(isPublicKind(kind)){
+  if(kind==='parking'){cost=PARKING.maintenance*(c.management?.parameters.maintenance??1);construction=PARKING.cost*(c.management?.parameters.construction??1);capacity=PARKING.spaces;used=c.traffic.parkingUsage.get(id)??0;load=used/capacity;loadLabel='通勤の駐車枠利用率';}
+  else if(isPublicKind(kind)){
    const f=publicFacility(c,kind);cost=f.maintenance;construction=f.cost;
    if(kind==='police'||kind==='fire'){
     sector=kind;load=kind==='police'?c.safety.policeCoverage:c.safety.fireCoverage;loadLabel='市全体の'+(kind==='police'?'警察':'消防')+'充足率（参考）';

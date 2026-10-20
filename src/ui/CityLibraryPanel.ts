@@ -1,9 +1,10 @@
+import {gameDate} from './HudPresentation';
 import {CityLibrary,type LibraryEntry} from '../save/CityLibrary';
 import type {CityStorage} from '../save/storage';
 export class CityLibraryPanel {
  private root:HTMLElement;private generation=0;private pending=false;private drafts=new Map<string,string>();
  constructor(private library:CityLibrary,private storage:CityStorage,private locked:()=>boolean,private restore:(data:unknown,name:string)=>Promise<string>,private setBusy:(value:boolean)=>void){
-  this.root=document.createElement('details');this.root.id='city-library';this.root.innerHTML='<summary>保存都市の名前・画像・バックアップ</summary><p>バックアップは手動保存前の3件を保持します。復元は別スロットに作成します。名前・画像はこのブラウザーに保存されます。</p><div id="city-library-list"></div><p id="city-library-status" role="status"></p>';
+  this.root=document.createElement('details');this.root.id='city-library';this.root.innerHTML='<summary>保存都市の名前・画像・バックアップ</summary><p>手動保存前3件と、自動保存で上書きする前の3件を別々に保持します。同じ状態の自動保存は重複させません。復元は別スロットに作成し、プレイ中の都市は上書きしません。自動バックアップの復元先は一時停止で開きます。名前・画像はこのブラウザーに保存されます。</p><div id="city-library-list"></div><p id="city-library-status" role="status"></p>';
   document.querySelector('.save-panel')!.append(this.root);this.root.addEventListener('toggle',()=>{if((this.root as HTMLDetailsElement).open)void this.refresh();});
  }
  async refresh(){
@@ -21,6 +22,10 @@ export class CityLibraryPanel {
      if(!confirm((entry.name||'この都市')+'とバックアップを削除しますか？ この操作は戻せません。'))return;
      await this.storage.remove(slot);await this.library.remove(slot);
     });deletion.disabled=slot===this.storage.activeSlot;
+    const auto=document.createElement('h4');auto.textContent='自動バックアップ';article.append(auto);
+    const automatic=entry.automaticBackups??[];if(!automatic.length){const p=document.createElement('p');p.textContent='自動保存が進むと、上書き前の状態が最大3件残ります。';article.append(p);}
+    for(const backup of automatic)this.button(article,'自動 '+new Date(backup.savedAt).toLocaleString('ja-JP')+' · '+gameDate(backup.data.city.month)+' · 人口'+backup.data.city.population+'人を別スロットへ復元',()=>this.restore({...backup.data,clock:{...backup.data.clock,speed:0}},entry.name||'都市'));
+    const manual=document.createElement('h4');manual.textContent='手動保存前のバックアップ';article.append(manual);
     for(const backup of entry.backups)this.button(article,new Date(backup.savedAt).toLocaleString('ja-JP')+'を別スロットへ復元',()=>this.restore(backup.data,entry.name||'都市'));
     list.append(article);
    });

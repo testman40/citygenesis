@@ -6,10 +6,9 @@ import {toolIcon} from '../Presentation';
 import {toolGroup,TOOL_COLORS,type HudGroup} from '../ui/HudPresentation';
 export function mapBadgeWarning(city:City,cell:{x:number;z:number}):string|null {
  const tile=city.tile(cell),id=cell.z*city.size+cell.x;
- if(tile.zone==='residential'&&tile.level>0){const issue=employmentInformation(city).issues.find(r=>r.homes.includes(id));if(issue)return issue.title;}
  if((tile.zone||tile.facility)&&!tile.networkConnected)return '道路網から孤立しています';
  if(tile.road){if(!city.network.isMain(id))return '道路網から孤立しています';return informationAt(city,id,'traffic').state==='red'?'交通が混雑しています':null;}
- if(tile.zone&&tile.level>0){for(const mode of ['power','water','sewage','medical','education','fire','police','air','noise'] as InfoMode[]){const result=informationAt(city,id,mode);if(result.state==='red'||result.state==='blue')return result.note;}}return null;
+ if(tile.zone&&tile.level>0){for(const mode of ['power','water','sewage','medical','education','fire','police','air','noise'] as InfoMode[]){const result=informationAt(city,id,mode);if(mode==='education'&&city.population<100)continue;if(result.state==='red'||(['power','water','sewage'].includes(mode)&&result.state==='blue'))return result.note;}}if(tile.zone==='residential'&&tile.level>0){const issue=employmentInformation(city).issues.find(r=>r.homes.includes(id));if(issue)return issue.title;}return null;
 }
 interface Badge {x:number;z:number;height:number;group:HudGroup;icon:string;warning:string|null}
 /** Bounded, decorative view of nearby tiles; never writes to the city. */

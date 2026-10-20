@@ -23,7 +23,7 @@ export class Workspace {
   onPlay:()=>void=()=>{};
   onCityReset:(fresh:boolean)=>void=()=>{};
   private owner:City|undefined;
-  private tutorial=false;
+  private tutorial=false;private starter=false;
   private signature='';
   private stamp=0;
   private financeViewed=false;
@@ -86,8 +86,8 @@ export class Workspace {
     if(panel==='finance-panel'){this.financeViewed=true;this.invalidate();}
     target.scrollIntoView({block:'nearest'});
   }
-  reset(city:City,fresh=false){
-    this.owner=city;this.financeViewed=false;this.undoUsed=false;this.tutorial=fresh;this.dismissed=false;this.invalidate();this.onCityReset(fresh);
+  reset(city:City,fresh=false,starter=false){
+    this.owner=city;this.financeViewed=false;this.undoUsed=false;this.starter=starter;this.tutorial=fresh;this.dismissed=false;this.invalidate();this.onCityReset(fresh);
   }
   didUndo(city:City){this.owner=city;this.undoUsed=true;this.invalidate();}
   invalidate(){this.signature='';this.stamp=0;}
@@ -95,7 +95,7 @@ export class Workspace {
     if(city!==this.owner)this.reset(city);
     if(performance.now()-this.stamp<300)return;this.stamp=performance.now();
     element('scenery-status').textContent='公園は4マス、広場は3マスの範囲で住宅へ効果（道路接続が必要）。重複は最大値。現在の都市平均：満足度 +'+city.sceneryBonus.toFixed(1)+' / 住宅需要 +'+(city.sceneryBonus*1.5).toFixed(1)+'。';
-    const steps=tutorialSteps(city,this.financeViewed,this.undoUsed),step=steps.find(s=>!s.done);
+    const steps=tutorialSteps(city,this.financeViewed,this.undoUsed,this.starter),step=steps.find(s=>!s.done);
     const actions=nextActions(city).filter(a=>a.id!=='healthy'),signature=JSON.stringify([this.tutorial,city.funds<0,steps,actions]);
     const shortage=city.funds<0;element('guide-panel').dataset.fundsNegative=String(shortage);element('guide-funds').hidden=!shortage;const fundsMessage=shortage?(city.population===0?'資金不足で入居が停止しています。経営画面で緊急融資と生活基盤の再建を確認してください。':'資金が足りません:住宅を建てて人口を増やすと税収が入ります'):'';if(element('guide-funds').textContent!==fundsMessage)element('guide-funds').textContent=fundsMessage;element('guide-panel').hidden=!shortage&&!this.tutorial&&actions.length===0;
     if(signature===this.signature)return;this.signature=signature;

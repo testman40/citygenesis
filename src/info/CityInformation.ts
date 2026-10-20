@@ -1,8 +1,10 @@
+import {landValueAt} from '../urban/LandValue';
+import {warningPriority} from './RequestPriority';
 import {serviceHomes,publicEnabled,type PublicService} from '../services/PublicFacilities';
 import {urbanDemand} from '../demand/Demand';
 import {employmentInformation,workAccessAt,type WorkIssue} from './EmploymentInformation';
 import type {City} from '../simulation/City';
-export const INFO_MODES={workAccess:'仕事への近さ',air:'大気汚染',noise:'騒音',normal:'通常',happiness:'幸福度（都市値・区域条件）',demand:'開発需要',power:'電力',water:'水道',sewage:'下水・汚水',network:'道路接続',traffic:'交通・渋滞',transit:'公共交通',fire:'消防',police:'治安',medical:'医療',education:'教育',environment:'河川の水質'} as const;
+export const INFO_MODES={landValue:'地価',workAccess:'仕事への近さ',air:'大気汚染',noise:'騒音',normal:'通常',happiness:'幸福度（都市値・区域条件）',demand:'開発需要',power:'電力',water:'水道',sewage:'下水・汚水',network:'道路接続',traffic:'交通・渋滞',transit:'公共交通',fire:'消防',police:'治安',medical:'医療',education:'教育',environment:'河川の水質'} as const;
 export type InfoMode=keyof typeof INFO_MODES;
 export const INFO_STYLE={green:{color:'#42bf89',symbol:'●',label:'良好・充足'},blue:{color:'#4e9ee9',symbol:'＝',label:'注意・改善余地'},red:{color:'#ef646b',symbol:'×',label:'問題・不足'},neutral:{color:'#9ba9ae',symbol:'—',label:'対象外・未開始'}} as const;
 export type InfoState=keyof typeof INFO_STYLE;
@@ -12,6 +14,7 @@ export function informationAt(c:City,id:number,mode:InfoMode):{state:InfoState;v
  const x=id%c.size,z=Math.floor(id/c.size);if(!Number.isInteger(id)||!c.contains({x,z}))return {state:'neutral',value:null,note:'マップ外'};
  const t=c.tile({x,z}),h=c.hydrology,w=c.waterUtility;if(mode==='air'||mode==='noise'||mode==='environment'&&h?.river.has(id)&&c.environment){if(!c.environment)return {state:'neutral',value:null,note:'環境計算の開始待ち'};const v=c.environment.at(id)[mode==='environment'?'water':mode];return {state:v<=20?'green':v<=60?'blue':'red',value:v/100,note:'ゲーム内指数 '+v.toFixed(1)+'/100（推計）'};}if(h?.river.has(id)&&['water','sewage','environment'].includes(mode))return {state:'neutral',value:null,note:'河川の水質濃度・拡散は未計算。施設・管網の汚水負荷を確認してください'};if(w&&['water','sewage','environment'].includes(mode)&&!t.road&&!t.zone&&!t.facility&&!h?.pipes.has(id))return {state:'neutral',value:null,note:'給排水の対象外'};let value:number|null=null,note='';let state:InfoState|undefined;
  switch(mode){
+ case 'landValue':{const r=landValueAt(c,id);return {state:r.value>=60?'green':r.value>=35?'blue':'red',value:r.value/100,note:'地価指数 '+r.value+'/100 / 道路・供給・公共サービスを加点、汚染・騒音・混雑を減点'};}
  case 'workAccess':value=workAccessAt(c,id);note='道路で徒歩10マス・車30マス、運行中のバスは停留所まで徒歩5マス。緑ほど職場に通いやすい場所です';break;
  case 'normal':return {state:'neutral',value:null,note:'用途色'};
  case 'happiness':value=c.satisfaction/100;note='都市全体の実測値。このマスの公園効果 +'+c.parks.at(id).toFixed(1)+'（都市値には住宅の平均効果を反映）';break;
@@ -40,7 +43,7 @@ export function citizenRequests(c:City):CitizenRequest[]{const r:CitizenRequest[
  if(c.safety.enabled&&c.buildingCount){add('fire','fire',c.safety.fireCoverage,'消防が不足','消防未充足の建物','消防署・道路・予算を確認');add('police','police',c.safety.policeCoverage,'警察が不足','警察未充足の建物','警察署・道路・予算を確認');}
  const active=[...c.transit.services.values()].filter(s=>s.active),capacity=active.reduce((n,s)=>n+s.capacity,0);if(capacity>0&&c.transit.riders>=capacity*.95&&c.transit.carUsers>0)r.push({id:'bus-capacity',mode:'transit',severity:'blue',title:'バス輸送枠に余裕が少ない',area:'運行中の路線',action:'路線別利用者・配備台数・公共交通予算を確認'});
  for(const request of r){if(['fire','police','medical','education'].includes(request.id)&&publicEnabled(c,request.id as PublicService)){const homes=serviceHomes(c,request.id as PublicService);if(homes.length){request.count=homes.reduce((n,h)=>n+(c.residents?.atHome(h.id).length||1),0);request.unit=c.residents?'世帯':'住宅区画';}}}
- return r.sort((a,b)=>(a.severity==='red'?0:1)-(b.severity==='red'?0:1)||a.id.localeCompare(b.id));
+ return r.sort((a,b)=>warningPriority(c,a)-warningPriority(c,b)||(a.severity==='red'?0:1)-(b.severity==='red'?0:1)||a.id.localeCompare(b.id));
 }
 
 export const requestTotal=(requests:CitizenRequest[])=>requests.reduce((n,r)=>n+(r.count??1),0);

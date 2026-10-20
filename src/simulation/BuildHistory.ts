@@ -1,6 +1,6 @@
 import {City,type Tool} from './City';
 import type {CityState} from '../save/schema';
-const tools=new Set<Tool>(['library','university','medicalCenter','researchCampus','crossing','road','residential','commercial','industrial','erase','bridge','park','plaza','pipe','pipe-remove','power','water','externalWater','wind','solar','outfall','sewage','advancedSewage','clinic','hospital','elementary','highSchool','fire','police','depot']);
+const tools=new Set<Tool>(['parking','library','university','medicalCenter','researchCampus','crossing','road','residential','commercial','industrial','erase','bridge','park','plaza','pipe','pipe-remove','power','water','externalWater','wind','solar','outfall','sewage','advancedSewage','clinic','hospital','elementary','highSchool','fire','police','depot']);
 const encoded=(state:CityState)=>JSON.stringify(state);
 interface Entry {before:CityState;after:CityState;label:string;bytes:number}
 const running=(state:CityState)=>state.transit?.infrastructure?.buses.some(bus=>bus.state!=='garage')??false;

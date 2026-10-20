@@ -1,3 +1,4 @@
+import type {HousingDensity} from '../urban/UrbanDevelopment';
 import {gridStroke} from './GridInput';
 import {yieldInfrastructure} from '../transit/yieldTask';
 import {roadState,type RoadRequest,roadCells} from '../roads/plan';
@@ -26,7 +27,7 @@ export class CityJobs {
  if(ids.length<=256&&this.city.roadCount<1024&&this.city.buildingCount<128){try{const state=roadState(this.city.snapshot(),r).state;commitRoad(this.city,City.fromState(state,{allowPopulationChange:true}));this.changed(this.city);}catch(e){this.notify(e);}return;}
  const epoch=this.epoch;this.stable=this.city.snapshot();this.abort=new AbortController();const job=async()=>{try{await command(this.city);if(epoch!==this.epoch)return;this.changed(this.city);while(this.commands.length&&epoch===this.epoch){await this.commands.shift()!(this.city);if(epoch!==this.epoch)return;this.changed(this.city);await new Promise<void>(r=>setTimeout(r,0));}}catch(e){if(epoch===this.epoch){this.commands=[];this.notify(e);}}finally{if(epoch===this.epoch){this.running=null;this.stable=null;this.abort=null;this.notify();}}};this.running=job();this.notify();
  }
- stroke(from:Cell,to:Cell,tool:Tool){const a={...from},b={...to};if(tool==='erase'&&(this.city.energy||this.city.sanitation||this.city.waterUtility)&&[...gridStroke(a,b)].some(c=>{const f=this.displayCity.tile(c).facility;return f==='externalWater'||f==='wind'||f==='solar'||f==='power'||f==='sewage'||f==='advancedSewage'||f==='outfall'||f==='water';})){this.infrastructure(city=>city.waterWorks(a,b,'erase'));return;}this.enqueue(city=>city.applyStroke(a,b,tool),['stroke',tool,a.x,a.z,b.x,b.z].join(':'));}
+ stroke(from:Cell,to:Cell,tool:Tool,density?:HousingDensity){const a={...from},b={...to};if(tool==='erase'&&(this.city.energy||this.city.sanitation||this.city.waterUtility)&&[...gridStroke(a,b)].some(c=>{const f=this.displayCity.tile(c).facility;return f==='externalWater'||f==='wind'||f==='solar'||f==='power'||f==='sewage'||f==='advancedSewage'||f==='outfall'||f==='water';})){this.infrastructure(city=>city.waterWorks(a,b,'erase'));return;}this.enqueue(city=>{if(tool==='residential'&&density)city.zoneHousingStroke(a,b,density);else city.applyStroke(a,b,tool);},['stroke',tool,density??'',a.x,a.z,b.x,b.z].join(':'));}
  edit(from:Cell,to:Cell,tool:Tool){const a={...from},b={...to};this.enqueue(city=>city.apply(a,b,tool),[tool,a.x,a.z,b.x,b.z].join(":"));}
  readonly infrastructureProfile={cpuMs:0,maxSliceMs:0,slices:0,elapsedMs:0};
  infrastructure(command:(city:City)=>void,result?:(error?:unknown)=>void){

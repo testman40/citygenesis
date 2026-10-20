@@ -288,3 +288,25 @@ body.hud-layout #app #beginner-video-welcome{margin:0}
 body.hud-layout #app #beginner-video-welcome label{display:flex;align-items:center;gap:8px;margin:8px 0;min-height:44px;font-size:13px}
 body.hud-layout #app #beginner-video-welcome input{width:20px;height:20px;flex-shrink:0}
 body.hud-layout #app #beginner-video-welcome button{min-height:44px;font-size:13px}
+body.hud-layout #app .beginner-card{background:white;color:var(--hud-ink);border:1px solid var(--hud-line);border-radius:10px;padding:10px 12px;line-height:1.6;font-size:13px;margin:8px 0}
+body.hud-layout #app .beginner-card[hidden]{display:none}
+body.hud-layout #app .beginner-card h3{font-size:14px;margin:0 0 8px}
+body.hud-layout #app .beginner-card p{margin:5px 0}
+body.hud-layout #app .beginner-card small{display:block;font-size:12px;color:#465b65}
+body.hud-layout #app .beginner-card button{min-height:44px;font-size:13px;padding:7px 10px}
+body.hud-layout #app .home-check{border-top:1px solid var(--hud-line);padding:7px 0}
+body.hud-layout #app #home-readiness{margin:0}
+body.hud-layout #app #construction-budget{border-left:4px solid #185fa5}
+body.hud-layout #app .request-priority{font-size:14px;border-bottom:1px solid var(--hud-line);padding-bottom:6px;margin-top:16px}
+body.hud-layout #app .construction-budget-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px}
+body.hud-layout #app .construction-budget-metrics p{margin:0;overflow-wrap:anywhere}
+body.hud-layout #app .home-check{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;padding:4px 0}
+body.hud-layout #app .home-check button{flex:0 0 auto}
+body.hud-layout #app #home-readiness details{margin:8px 0}
+body.hud-layout #app #home-readiness details p{font-size:12px}
+
+/* Urban development keeps the existing HUD placement. */
+#housing-density-options{margin-top:10px}#housing-density-options small,#hud-transit-options small{display:block;font-size:12px;white-space:normal}#housing-density-options button[aria-pressed="true"]{background:#3B6D11;color:white}#hud-transit-options [data-hud-tool="parking"][aria-pressed="true"]{background:#534AB7;color:white}
+.urban-card{background:#fff;color:#172c35;border:1px solid #c9d7dc;border-radius:10px;padding:12px;min-width:0}.urban-card h3{font-size:15px;margin:14px 0 8px}.urban-card h3:first-child{margin-top:0}.urban-card p{line-height:1.6}.urban-card small{font-size:12px;line-height:1.6;color:#435c68}.urban-metric{font-size:30px;font-weight:700;margin:4px 0}.urban-bar{display:grid;grid-template-columns:minmax(90px,1fr) minmax(40px,1.5fr) auto;gap:8px;align-items:center;margin:10px 0;font-size:12px}.urban-bar meter{width:100%;height:17px}.land-value-legend{display:flex;justify-content:space-between;padding:8px;border-radius:5px;background:linear-gradient(90deg,#d85a4c,#e9bc50,#3b995b);color:#14262c;font-size:12px;font-weight:700}.urban-card button{min-height:44px;border:1px solid #3b6d11;border-radius:6px;padding:8px;color:#234e15;background:#edf6e9;font-size:13px}
+body.hud-layout #app #land-value-panel .urban-metric{font-size:30px;font-weight:700;line-height:1.3;margin:6px 0;display:block}body.hud-layout #app #land-value-panel .urban-metric small{display:inline;font-size:13px}
+body.hud-layout #app #hud-context [data-housing-density][aria-pressed="true"]{background:#3B6D11;color:#fff}body.hud-layout #app #hud-context [data-housing-density][aria-pressed="true"] small{color:#fff}body.hud-layout #app #hud-context [data-hud-tool="parking"][aria-pressed="true"]{background:#534AB7;color:#fff}body.hud-layout #app #hud-context [data-hud-tool="parking"][aria-pressed="true"] small{color:#fff}

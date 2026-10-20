@@ -4,11 +4,12 @@ const icon=(path:string)=>'<svg viewBox="0 0 24 24" width="22" height="22" fill=
 export const INFO_GROUPS=[
  {id:'living',label:'暮らし',tabs:['residents','happiness','requests']},
  {id:'infrastructure',label:'インフラ',tabs:['demand','power','water','sewage','network','medical','education','fire','police']},
- {id:'environment',label:'環境',tabs:['environment','air','noise']},
+ {id:'environment',label:'環境',tabs:['environment','air','noise','landValue']},
  {id:'traffic',label:'交通',tabs:['traffic','transit','workAccess']},
 ] as const;
 export function informationGroup(tab:string|null){return INFO_GROUPS.find(g=>(g.tabs as readonly string[]).includes(tab??''))?.id??'living';}
 export const INFO_TABS=[
+ {id:'landValue',label:'地価',icon:icon('M3 21h18M5 17l5-5 4 2 7-10M17 4h4v4')},
  {id:'residents',label:'世帯',icon:icon('M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21v-4c0-6 12-6 12 0v4m0-7c4-1 8 1 8 4v3')},
  {id:'happiness',label:'幸福度',icon:icon('M12 21S3 15 3 9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12-9 12Z')},
  {id:'water',label:'水道',icon:icon('M12 2 5 12a8 8 0 1 0 14 0L12 2ZM8 15c0 3 2 4 4 4')},
@@ -33,7 +34,7 @@ export interface MenuState {tab:InfoTab|'other'|null;mode:InfoMode}
 export const closedMenu=():MenuState=>({tab:null,mode:'normal'});
 export function modeMenu(mode:InfoMode):MenuState {if(mode==='normal')return closedMenu();return {tab:INFO_TABS.some(t=>t.id===mode)?mode as InfoTab:'other',mode};}
 export function toggleMenu(state:MenuState,tab:InfoTab):MenuState {return state.tab===tab?closedMenu():{tab,mode:tab==='requests'||tab==='residents'?'normal':tab};}
-const DIRECT_TABS=['residents','happiness','requests','demand','workAccess'];
+const DIRECT_TABS=['landValue','residents','happiness','requests','demand','workAccess'];
 export const INFO_BAR_HTML='<section id="information-toolbar" aria-label="都市情報ビュー"><div class="information-shortcuts" role="toolbar" aria-label="情報の分類">'+INFO_GROUPS.map(g=>'<button type="button" data-info-group="'+g.id+'" aria-controls="information-panel" aria-pressed="false">'+g.label+'</button>').join('')+INFO_TABS.filter(t=>DIRECT_TABS.includes(t.id)).map(t=>'<button type="button" data-info-tab="'+t.id+'" aria-controls="information-panel" aria-pressed="false" aria-expanded="false">'+t.label+(t.id==='requests'?'<span id="info-request-badge" class="info-count">0</span>':'')+'</button>').join('')+'</div><label id="info-detail-label" hidden>詳細表示 <select id="info-detail-view" aria-label="分類内の詳細表示"></select></label><select id="info-other" hidden aria-label="情報を直接選択"><option value="">選択</option>'+Object.entries(INFO_MODES).filter(([k])=>k!=='normal').map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select></section>';
 const num=(v:number)=>v.toLocaleString('ja-JP',{maximumFractionDigits:1}),pct=(v:number)=>Math.round(v*100)+'%';
 /** Presentation of existing results only. No policy, save or simulation mutations. */

@@ -1,3 +1,4 @@
+import {allocateParking,type ParkingTrip} from '../urban/Parking';
 import {roadDistance,COMMUTE_REACH} from './CommuteAccess';
 import {roadLanes} from './RoadLanes';
 import type {RoadKind} from '../roads/profiles';
@@ -20,6 +21,9 @@ export function apportion(total:number,weights:number[]):number[]{
  const left=total-assigned;if(left>0){const order=orderScratch.subarray(0,n);order.sort((a,b)=>fractionScratch[b]-fractionScratch[a]||a-b);for(let i=0;i<left;i++)result[order[i]]++;}return result;
 }
 export class Traffic {
+ parkingTrips:ParkingTrip[][]=[];parkingUsage=new Map<number,number>();parkingSavedDistance=0;private parking=new Set<number>();private parkingKey='';
+ setParking(lots:Iterable<number>){const ids=[...lots].sort((a,b)=>a-b),key=ids.join(',');if(key!==this.parkingKey){this.parkingKey=key;this.parking=new Set(ids);this.signature='';}}
+ parkingTrip(home:number,work:number,ordinal:number){const index=this.routes.findIndex(r=>r.home===home&&r.work===work);for(const trip of this.parkingTrips[index]??[]){if(ordinal<trip.count)return trip;ordinal-=trip.count;}}
  residentMode=false;private get tripFactor(){return this.residentMode?1:2;}
  solveRevision=0;readonly routing:DynamicRouting;routingMonth=0;allowRebalance=false;private pathsDynamic=false;private carCounts:number[]=[];private carLegs:CarLeg[][]=[];analysis={baselineMinutes:0,actualCarMinutes:0,avoidedMinutes:0,splitOD:0,carDemand:0,busRoadDemand:0};
  residentPopulation:number|undefined;readonly pathfinder:Pathfinder;private carFinder:Pathfinder;private bikeFinder:Pathfinder;
@@ -110,7 +114,10 @@ export class Traffic {
    touched.length=0;for(let id=0;id<this.volumeBuffer.length;id++)if(this.volumeBuffer[id]>0)touched.push(id);
   }
   if(this.routing.enabled&&!useRouting&&this.allowRebalance)this.routing.skipUnique(this.routingMonth);
-  for(const id of touched)this.volumes.set(id,this.volumeBuffer[id]);
+  const fullLegs=useRouting?this.carLegs:this.routes.map((r,i)=>carCounts[i]?[{path:r.path,count:carCounts[i]}]:[]),parking=allocateParking(this.graph,this.parking,fullLegs);
+  this.parkingTrips=parking.trips;this.parkingUsage=parking.usage;this.parkingSavedDistance=parking.saved;
+  for(let ri=0;ri<this.routes.length;ri++)for(const t of parking.trips[ri])for(const id of t.walk.slice(1))this.volumeBuffer[id]=Math.max(0,this.volumeBuffer[id]-t.count*this.tripFactor);
+  for(const id of touched)if(this.volumeBuffer[id]>0)this.volumes.set(id,this.volumeBuffer[id]);
   for(const id of touched)this.multiplierBuffer[id]=this.multiplier(id);
   let actualCarTime=0;this.employed=0;this.commercialEmployed=0;this.industrialEmployed=0;let time=0,distance=0,commuters=0;
   for(let ri=0;ri<this.routes.length;ri++){
@@ -118,8 +125,8 @@ export class Traffic {
    route.minutes=this.config.accessMinutes*2;
    // Half of each endpoint's cost is included for every road edge.
    if(!useRouting&&carCounts[ri])for(let i=1;i<route.path.length;i++)route.minutes+=(this.roadMinutes(route.path[i-1])*this.multiplierBuffer[route.path[i-1]]+this.roadMinutes(route.path[i])*this.multiplierBuffer[route.path[i]])/2;
-   let dynamicCarServed=0,dynamicCarTime=0;if(useRouting)for(const l of this.carLegs[ri]){const minutes=this.routing.time(l.path,this.volumeBuffer,id=>this.capacity(id));dynamicCarTime+=minutes*l.count;dynamicCarServed+=l.count;}
-   else{dynamicCarTime=route.minutes*carCounts[ri];dynamicCarServed=carCounts[ri];}actualCarTime+=dynamicCarTime;if(useRouting&&carCounts[ri])route.minutes=dynamicCarTime/carCounts[ri];
+   let dynamicCarServed=0,dynamicCarTime=0;if(useRouting||this.parkingTrips[ri].length)for(const l of parking.driving[ri]){const minutes=this.routing.time(l.path,this.volumeBuffer,id=>this.capacity(id));dynamicCarTime+=minutes*l.count;dynamicCarServed+=l.count;}
+   else{dynamicCarTime=route.minutes*carCounts[ri];dynamicCarServed=carCounts[ri];}actualCarTime+=dynamicCarTime;const walkingTime=this.parkingTrips[ri].reduce((sum,t)=>sum+t.count*(t.walk.length+1)*1.5,0);if((useRouting||this.parkingTrips[ri].length)&&carCounts[ri])route.minutes=(dynamicCarTime+walkingTime)/carCounts[ri];
    route.served=this.routing.enabled?dynamicCarServed:carCounts[ri];
    if(useTransit){const m=modal[ri],carMinutes=route.minutes;let busMinutes=0;if(m.busChoice){busMinutes=m.busChoice.walk+transit!.config.waitMinutes+m.busChoice.stops*transit!.config.dwellMinutes;for(let i=1;i<m.busChoice.path.length;i++)busMinutes+=this.config.minutesPerRoad*(this.multiplier(m.busChoice.path[i-1])+this.multiplier(m.busChoice.path[i]))/2;}
     const walk=m.walk,bus=m.bus,car=this.routing.enabled?dynamicCarServed:m.car;
@@ -138,7 +145,7 @@ export class Traffic {
   for(const id of this.capacities.keys())if(!this.graph.has(id))this.capacities.delete(id);
   this.analysis={baselineMinutes:carDemand?(useRouting?baselineTime:actualCarTime)/carDemand:0,actualCarMinutes:carDemand?actualCarTime/carDemand:0,avoidedMinutes:useRouting&&carDemand?(baselineTime-actualCarTime)/carDemand:0,splitOD:this.carLegs.filter(l=>l.length>1).length,carDemand,busRoadDemand};
   if(transit)transit.finish(this.config.minutesPerRoad,id=>this.multiplier(id));
-  this.samples=[];const usable=(useRouting?this.carLegs.flatMap((legs,ri)=>legs.map(l=>({...this.routes[ri],path:l.path,served:this.routing.time(l.path,this.volumeBuffer,id=>this.capacity(id))<=this.config.maxCommuteMinutes?l.count:0}))):this.routes.map((r,i)=>useTransit?{...r,served:carServed[i]}:r)).filter(r=>r.served>0&&r.path.length>1),total=usable.reduce((a,r)=>a+r.served,0);
+  this.samples=[];const usable=this.parking.size?parking.driving.flatMap((legs,ri)=>legs.map(l=>({...this.routes[ri],path:l.path,served:l.count}))).filter(r=>r.served>0&&r.path.length>1):(useRouting?this.carLegs.flatMap((legs,ri)=>legs.map(l=>({...this.routes[ri],path:l.path,served:this.routing.time(l.path,this.volumeBuffer,id=>this.capacity(id))<=this.config.maxCommuteMinutes?l.count:0}))):this.routes.map((r,i)=>useTransit?{...r,served:carServed[i]}:r)).filter(r=>r.served>0&&r.path.length>1),total=usable.reduce((a,r)=>a+r.served,0);
   const distribution=apportion(Math.min(this.config.maxDisplayVehicles,total),usable.map(r=>r.served));
   for(let i=0;i<usable.length;i++){if(!distribution[i])continue;const path=usable[i].path,segments:number[]=[];let trip=0;
     for(let n=1;n<path.length;n++){trip+=((this.roadMinutes(path[n-1])+this.roadMinutes(path[n]))/2)*(this.multiplierBuffer[path[n-1]]+this.multiplierBuffer[path[n]])/2;segments.push(trip);}

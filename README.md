@@ -26,6 +26,11 @@ Node.jsはVite 7が対応するバージョン（20.19以上または22.12以上
 
 ## アップデート履歴
 
+### 2026-10-20：初心者向け音声解説動画のリリース
+
+`feature/beginner-video-guide` で開発。遊び方と新規都市の開始時から https://youtu.be/NI6JLgtEA1E を別タブで開けます。クリック時に一時停止し、戻った後は手動で再開。開始時の案内は閉じる・次回から非表示を選択可能で、設定は端末内に保存します。既存都市の読み込み時は案内を出しません。動画の自動再生・埋め込み・起動時のYouTube接続はありません。都市の保存形式や経済計算は維持。ユーザーの指示に基づき、mainと既存の https://testman40.github.io/citygenesis/ へ反映するリリースです。
+
+
 ### 2026-10-20：開拓期の資金保護と再建案内のリリース
 
 `feature/startup-finance-safety` で開発。ユーザーのGit反映・デプロイ指示に基づき、mainと既存の https://testman40.github.io/citygenesis/ へ反映するリリースです。

@@ -1,7 +1,8 @@
 /** Player-facing history follows the features in this build, not deployment status. */
 export const UPDATES_HTML=`
-<p class="updates-current">表示中の版：<strong>開拓期の資金保護・再建案内版</strong></p>
+<p class="updates-current">表示中の版：<strong>初心者向け音声解説動画の案内版</strong></p>
 <p class="workspace-tip">この画面に含まれる更新内容を、新しいものから表示しています。</p>
+<article class="update-entry"><h3>2026-10-20：初心者向け音声解説動画</h3><ul><li>遊び方と新規都市の開始時に、道路・給排水から黒字化までの解説動画への入口を追加。YouTubeを別タブで開くと一時停止します。開始時の案内は閉じる・次回から非表示にでき、遊び方からはいつでも視聴できます。</li></ul></article>
 <article class="update-entry"><h3>2026-10-20：開拓期の資金保護と再建案内</h3><ul>
 <li><strong>入居が止まったら一時停止</strong> — 人口0で入居条件を満たせず、維持費だけが6か月以上続いた場合は時間を止めて対処を案内。資金がマイナスの無人都市も保護します。入居準備が整った都市や入居済み都市はそのまま進行します。</li>
 <li><strong>学校より先に生活基盤を準備</strong> — 序盤はマップ外への一般道路・給水・排水・住宅・働き口を優先する案内を表示。施設の建設は引き続き選べます。</li>

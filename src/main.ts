@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import {BeginnerVideo} from './ui/BeginnerVideo';
 import {StartupBudgetGuard,startupBlock} from './economy/StartupBudget';
 import {connectWaterInfrastructure,quotePipes} from './water/ConnectedWater';
 import {UtilityGraphs} from './water/UtilityGraphs';
@@ -352,6 +353,7 @@ try {
   const slotLayout=new ResizeObserver(()=>{const bottom=document.querySelector('.save-panel')!.getBoundingClientRect().bottom;(document.querySelector('.transit-panel') as HTMLElement).style.top=(bottom+16)+'px';});slotLayout.observe(document.querySelector('.save-panel')!);
   document.addEventListener('city-facility-focus',e=>{const id=(e as CustomEvent<number>).detail,c=jobs.displayCity;if(!Number.isSafeInteger(id)||id<0||id>=c.size*c.size||!ready||busy||jobs.busy)return;workspace.close();setTool('select');view.tracking.stop();const cell={x:id%c.size,z:Math.floor(id/c.size)};selected=cell;view.focus(cell);view.highlight(cell);refreshInformation();});
   publicResolutions.observe(city);gameLayout=new GameLayout(workspace,setTool,()=>jobs.displayCity);document.getElementById('hud-notices')!.prepend(startupAlert);cityCharts=new CityCharts();setTool('select');
+  const beginnerVideo=new BeginnerVideo(document.getElementById('workspace-help')!,document.getElementById('hud-notices')!,()=>setSpeed(0));workspace.onCityReset=fresh=>beginnerVideo.reset(fresh);
   buttons(true);void load();
   // Read-only diagnostics. No simulation mutation is exposed to the browser tests.
   if(import.meta.env.DEV||import.meta.env.MODE==='qa') (window as unknown as {cityDiagnostics:unknown}).cityDiagnostics={

@@ -276,3 +276,15 @@ body.hud-layout #app .utility-graph p{font-size:12px;line-height:1.5;margin:6px 
 body.hud-layout #app .startup-budget-alert{background:#fff7e6;color:#543800;border:1px solid #c38c21;border-left:4px solid #c38c21;border-radius:10px;padding:12px;font-size:13px;line-height:1.6}
 body.hud-layout #app .startup-budget-alert p{margin:7px 0}
 body.hud-layout #app .startup-budget-alert button{min-height:44px;padding:8px;border:1px solid #b47b16;border-radius:6px;background:#fff;color:#543800;font-size:13px;cursor:pointer}
+
+body.hud-layout #app .beginner-video{background:#fff;color:var(--hud-ink);border:1px solid var(--hud-line);border-left:4px solid #185fa5;border-radius:10px;padding:12px;font-size:14px;line-height:1.6;margin-bottom:12px}
+body.hud-layout #app .beginner-video[hidden]{display:none}
+body.hud-layout #app .beginner-video h3{margin:0 0 8px;font-size:16px}
+body.hud-layout #app .beginner-video p{margin:8px 0}
+body.hud-layout #app .beginner-video .beginner-video-link{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 10px;background:#185fa5;color:#fff;border-radius:7px;font-size:14px;text-decoration:none;text-align:center;overflow-wrap:anywhere}
+body.hud-layout #app .beginner-video .beginner-video-link:focus-visible{outline:3px solid #ba7517;outline-offset:3px}
+body.hud-layout #app .beginner-video .beginner-video-note{font-size:12px;color:#465a63}
+body.hud-layout #app #beginner-video-welcome{margin:0}
+body.hud-layout #app #beginner-video-welcome label{display:flex;align-items:center;gap:8px;margin:8px 0;min-height:44px;font-size:13px}
+body.hud-layout #app #beginner-video-welcome input{width:20px;height:20px;flex-shrink:0}
+body.hud-layout #app #beginner-video-welcome button{min-height:44px;font-size:13px}

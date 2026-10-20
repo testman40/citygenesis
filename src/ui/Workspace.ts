@@ -21,6 +21,7 @@ export class Workspace {
   onUndo:()=>void=()=>{};
   onRedo:()=>void=()=>{};
   onPlay:()=>void=()=>{};
+  onCityReset:(fresh:boolean)=>void=()=>{};
   private owner:City|undefined;
   private tutorial=false;
   private signature='';
@@ -86,7 +87,7 @@ export class Workspace {
     target.scrollIntoView({block:'nearest'});
   }
   reset(city:City,fresh=false){
-    this.owner=city;this.financeViewed=false;this.undoUsed=false;this.tutorial=fresh;this.dismissed=false;this.invalidate();
+    this.owner=city;this.financeViewed=false;this.undoUsed=false;this.tutorial=fresh;this.dismissed=false;this.invalidate();this.onCityReset(fresh);
   }
   didUndo(city:City){this.owner=city;this.undoUsed=true;this.invalidate();}
   invalidate(){this.signature='';this.stamp=0;}
